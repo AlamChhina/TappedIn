@@ -7,8 +7,13 @@ import { redirect } from '@sveltejs/kit';
 export const GET: RequestHandler = async ({ cookies }) => {
   // ...build `state` and auth URL `u`...
   const state = randomBytes(16).toString('hex');
-  cookies.set('sp_state', state, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 600 });
-
+cookies.set('sp_state', state, {
+  path: '/',
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: false,     // explicit for http on 127.0.0.1
+  maxAge: 600
+});
   const u = new URL('https://accounts.spotify.com/authorize');
   u.searchParams.set('client_id', SPOTIFY_CLIENT_ID);
   u.searchParams.set('response_type', 'code');
