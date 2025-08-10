@@ -1,2 +1,9 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script>
+	const connect = () => (location.href = '/login/spotify');
+</script>
+
+<h1>Guess the Song (dev)</h1>
+<button onclick={() => {
+    console.log("clicked");
+    connect();
+}}>Connect Spotify</button>
