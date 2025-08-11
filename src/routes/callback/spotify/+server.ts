@@ -5,8 +5,16 @@ import { redirect } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
   const code = url.searchParams.get('code');
+  const error = url.searchParams.get('error');
   const returnedState = url.searchParams.get('state');
   const expectedState = cookies.get('sp_state');
+
+  // Handle user cancellation gracefully
+  if (error === 'access_denied') {
+    // Clean up state cookie and redirect back to landing page
+    cookies.delete('sp_state', { path: '/' });
+    throw redirect(302, '/');
+  }
 
   if (!code || !returnedState || !expectedState || returnedState !== expectedState) {
     return new Response('Invalid state or code', { status: 400 });
