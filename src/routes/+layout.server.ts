@@ -13,7 +13,7 @@ export const load = async ({ cookies }) => {
 		// Fetch user profile from Spotify
 		const response = await fetch('https://api.spotify.com/v1/me', {
 			headers: {
-				'Authorization': `Bearer ${accessToken}`
+				Authorization: `Bearer ${accessToken}`
 			}
 		});
 
@@ -30,9 +30,10 @@ export const load = async ({ cookies }) => {
 		// Extract profile data
 		const profile = {
 			display_name: spotifyProfile.display_name || null,
-			image_url: spotifyProfile.images && spotifyProfile.images.length > 0 
-				? spotifyProfile.images[0].url 
-				: null
+			image_url:
+				spotifyProfile.images && spotifyProfile.images.length > 0
+					? spotifyProfile.images[0].url
+					: null
 		};
 
 		return {
