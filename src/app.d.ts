@@ -8,6 +8,12 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// Spotify Web Playback SDK types
+	interface Window {
+		Spotify: any;
+		onSpotifyWebPlaybackSDKReady: () => void;
+	}
 }
 
 export {};

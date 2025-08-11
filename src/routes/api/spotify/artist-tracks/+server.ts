@@ -18,16 +18,14 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	try {
 		const tracks = await collectPrimaryTracks(artistId, accessToken);
 
-		// Return minimal track data for the UI
+		// Return track data in GameTrack format
 		const trackData = tracks.map((track) => ({
 			id: track.id,
 			name: track.name,
 			popularity: track.popularity,
-			artists: track.artists.map((artist) => ({
-				id: artist.id,
-				name: artist.name
-			})),
-			uri: track.uri
+			uri: track.uri || `spotify:track:${track.id}`,
+			artistIds: track.artists.map((artist) => artist.id),
+			artistNames: track.artists.map((artist) => artist.name)
 		}));
 
 		return json(trackData);

@@ -2,6 +2,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Search, Music, Loader2 } from 'lucide-svelte';
 	import { onMount } from 'svelte';
+	import GuessTrack from './GuessTrack.svelte';
+	import type { GameTrack } from '$lib/types';
 
 	// Types for our API responses
 	interface Artist {
@@ -10,19 +12,11 @@
 		images: { url: string; height: number; width: number }[];
 	}
 
-	interface Track {
-		id: string;
-		name: string;
-		popularity: number;
-		artists: { id: string; name: string }[];
-		uri: string;
-	}
-
 	// Component state
 	let searchQuery = $state('');
 	let searchResults = $state<Artist[]>([]);
 	let selectedArtist = $state<Artist | null>(null);
-	let tracks = $state<Track[]>([]);
+	let tracks = $state<GameTrack[]>([]);
 	let isSearching = $state(false);
 	let isFetchingTracks = $state(false);
 	let showDropdown = $state(false);
@@ -94,7 +88,7 @@
 				throw new Error(`Failed to fetch tracks: ${response.statusText}`);
 			}
 
-			const artistTracks: Track[] = await response.json();
+			const artistTracks: GameTrack[] = await response.json();
 			tracks = artistTracks;
 		} catch (error) {
 			console.error('Tracks error:', error);
@@ -249,6 +243,8 @@
 	<!-- Tracks List -->
 	{#if tracks.length > 0 && selectedArtist}
 		<div class="space-y-4">
+			<!-- Comment out the tracks list display for now -->
+			<!-- 
 			<h3 class="text-xl font-semibold text-white">
 				Primary tracks by {selectedArtist.name} ({tracks.length} songs)
 			</h3>
@@ -260,12 +256,9 @@
 					>
 						<div class="flex-1">
 							<span class="font-medium text-white">{track.name}</span>
-							{#if track.artists.length > 1}
+							{#if track.artistNames.length > 1}
 								<span class="ml-2 text-sm text-gray-400">
-									(feat. {track.artists
-										.slice(1)
-										.map((a) => a.name)
-										.join(', ')})
+									(feat. {track.artistNames.slice(1).join(', ')})
 								</span>
 							{/if}
 						</div>
@@ -275,6 +268,10 @@
 					</div>
 				{/each}
 			</div>
+			-->
+
+			<!-- Guess Track Component -->
+			<GuessTrack {tracks} artistName={selectedArtist.name} />
 		</div>
 	{:else if selectedArtist && !isFetchingTracks && !tracksError}
 		<div class="p-8 text-center text-gray-400">
