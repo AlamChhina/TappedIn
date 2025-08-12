@@ -26,6 +26,7 @@
 	let guessInput = $state('');
 	let suggestions = $state<GameTrack[]>([]);
 	let hoveredSuggestionIndex = $state<number | null>(null);
+	let selectedSuggestionIndex = $state<number>(0); // Track keyboard selection
 	let isTransferring = $state(false);
 	let isPlaying = $state(false);
 	let isPreloading = $state(false);
@@ -37,21 +38,23 @@
 	// Spotify SDK references
 	let player: any = null;
 	let sdkLoaded = false;
-	let guessInputElement: HTMLInputElement;
+	let guessInputElement = $state<HTMLInputElement | null>(null);
 
 	// Filter suggestions based on input
 	$effect(() => {
 		if (!guessInput.trim() || showAnswer) {
 			suggestions = [];
 			hoveredSuggestionIndex = null;
+			selectedSuggestionIndex = 0;
 			return;
 		}
 
 		const query = guessInput.toLowerCase();
 		suggestions = tracks.filter((track) => track.name.toLowerCase().includes(query)).slice(0, 5); // Limit to 5 suggestions
 		
-		// Reset hover state when suggestions change
+		// Reset selection when suggestions change
 		hoveredSuggestionIndex = null;
+		selectedSuggestionIndex = 0;
 	});
 
 	// Load Spotify Web Playback SDK
@@ -378,7 +381,7 @@
 		}, 50); // 50ms delay - just enough to prevent immediate skip
 	}
 
-	// Handle Enter key in input
+	// Handle keyboard navigation in input
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
@@ -389,11 +392,24 @@
 				return;
 			}
 			
-			// Only act if there are suggestions available and answer not shown
+			// If there are suggestions and answer not shown, select the highlighted one
 			if (suggestions.length > 0 && !showAnswer) {
-				selectSuggestion(suggestions[0]);
+				const indexToSelect = hoveredSuggestionIndex !== null ? hoveredSuggestionIndex : selectedSuggestionIndex;
+				selectSuggestion(suggestions[indexToSelect]);
 			}
 			// Do nothing if no suggestions or answer already shown (but can't advance yet)
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			if (suggestions.length > 0) {
+				selectedSuggestionIndex = (selectedSuggestionIndex + 1) % suggestions.length;
+				hoveredSuggestionIndex = null; // Clear mouse hover when using keyboard
+			}
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			if (suggestions.length > 0) {
+				selectedSuggestionIndex = selectedSuggestionIndex === 0 ? suggestions.length - 1 : selectedSuggestionIndex - 1;
+				hoveredSuggestionIndex = null; // Clear mouse hover when using keyboard
+			}
 		}
 	}
 
@@ -443,7 +459,7 @@
 	$effect(() => {
 		if (currentTrack && !showAnswer && guessInputElement) {
 			setTimeout(() => {
-				guessInputElement.focus();
+				guessInputElement?.focus();
 			}, 100);
 		}
 	});
@@ -551,7 +567,6 @@
 						disabled={showAnswer}
 						class="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
 						onkeydown={handleKeydown}
-						autofocus
 					/>
 
 					<!-- Suggestions Dropdown -->
@@ -562,7 +577,7 @@
 							{#each suggestions as suggestion, index}
 								<button
 									class="w-full px-3 py-2 text-left text-sm text-white {
-										hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && index === 0)
+										hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && selectedSuggestionIndex === index)
 											? 'bg-slate-600'
 											: 'hover:bg-slate-600'
 									}"
