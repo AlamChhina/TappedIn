@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-svelte';
+	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle, Flame } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { normalizeTitle } from '$lib/utils/normalizeTitle';
@@ -26,6 +26,7 @@
 	let isPlaying = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let showAnswer = $state(false);
+	let streak = $state(0); // Track correct guesses in a row
 
 	// Spotify SDK references
 	let player: any = null;
@@ -274,9 +275,11 @@
 		if (normalizedGuess === normalizedTitle) {
 			guessStatus = 'correct';
 			showAnswer = true;
+			streak += 1; // Increment streak on correct guess
 		} else {
 			guessStatus = 'incorrect';
 			showAnswer = true; // Show answer on incorrect guess too
+			streak = 0; // Reset streak on incorrect guess
 		}
 	}
 
@@ -319,9 +322,25 @@
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
 	<div class="rounded-lg border border-slate-700 bg-slate-800/60 p-6">
-		<h3 class="mb-4 text-xl font-semibold text-white">
-			Guess the song by {artistName}
-		</h3>
+		<div class="mb-4 flex items-center justify-between">
+			<h3 class="text-xl font-semibold text-white">
+				Guess the song by {artistName}
+			</h3>
+			
+			<!-- Streak Counter -->
+			<div class="flex items-center gap-2 rounded-lg bg-slate-700/60 px-3 py-1.5">
+				{#if streak >= 3}
+					<Flame class="h-4 w-4 text-orange-400" />
+				{/if}
+				<div class="text-sm font-medium text-gray-300">Streak:</div>
+				<div class="text-lg font-bold {streak > 0 ? 'text-green-400' : 'text-gray-400'}">
+					{streak}
+				</div>
+				{#if streak >= 5}
+					<span class="text-xs font-medium text-orange-400">🔥</span>
+				{/if}
+			</div>
+		</div>
 
 		<!-- Player Status -->
 		<div class="mb-6">
