@@ -22,8 +22,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		const trackData = tracks.map((track) => ({
 			id: track.id,
 			name: track.name,
-			popularity: track.popularity,
-			uri: track.uri || `spotify:track:${track.id}`,
+			popularity: track.popularity || 0,
+			uri: track.uri,
 			artistIds: track.artists.map((artist) => artist.id),
 			artistNames: track.artists.map((artist) => artist.name)
 		}));
