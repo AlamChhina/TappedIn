@@ -35,7 +35,7 @@
 		<div class="w-full max-w-md">
 			<Card class="border-none backdrop-blur-sm" style="background-color: #121212;">
 				<CardHeader class="text-center">
-					<CardTitle class="text-xl text-white">Sign in With Spotify To Play</CardTitle>
+					<CardTitle class="h2 text-xl text-white">Sign in With Spotify To Play</CardTitle>
 					<CardDescription class="text-gray-300">
 						Premium subscription required
 					</CardDescription>
@@ -67,7 +67,7 @@
 		<div class="mx-auto max-w-4xl space-y-8">
 			<!-- Welcome Section -->
 			<div class="text-center">
-				<h2 class="mb-2 text-2xl font-bold text-white">
+				<h2 class="h2 mb-2 text-2xl text-white">
 					Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}!
 				</h2>
 				<p class="text-gray-400">Search for an artist and play</p>

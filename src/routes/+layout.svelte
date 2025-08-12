@@ -48,7 +48,7 @@
 			<div class="rounded-lg p-2" style="background-color: #1DB954;">
 				<Music class="h-5 w-5 text-white" aria-hidden="true" />
 			</div>
-			<h1 class="text-xl font-bold text-white">Guess the Song</h1>
+			<h1 class="app-title text-xl text-white">Guess the Song</h1>
 		</div>
 
 		<!-- User Avatar (if signed in) -->
