@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { tick } from 'svelte';
 	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle, Flame } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -30,11 +31,13 @@
 	let isPreloading = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let showAnswer = $state(false);
+	let canAdvance = $state(false); // Separate state for when Enter can advance
 	let streak = $state(0); // Track correct guesses in a row
 
 	// Spotify SDK references
 	let player: any = null;
 	let sdkLoaded = false;
+	let guessInputElement: HTMLInputElement;
 
 	// Filter suggestions based on input
 	$effect(() => {
@@ -266,7 +269,15 @@
 
 	// Skip to next track (optimized version using preloaded track)
 	async function skipToNext() {
+		// Reset advance state
+		canAdvance = false;
 		await startRound(); // Use the optimized startRound that uses preloaded tracks
+		
+		// Re-focus the input for the next round
+		await tick(); // Wait for DOM update
+		if (guessInputElement && !showAnswer) {
+			guessInputElement.focus();
+		}
 	}
 
 	// Start a new round
@@ -294,6 +305,7 @@
 		guessInput = '';
 		suggestions = [];
 		showAnswer = false;
+		canAdvance = false; // Reset advance state
 		errorMessage = null;
 
 		// Preload the next track while this one is playing
@@ -359,6 +371,11 @@
 			showAnswer = true; // Show answer on incorrect guess too
 			streak = 0; // Reset streak on incorrect guess
 		}
+
+		// Allow advancing to next song after a very short delay
+		setTimeout(() => {
+			canAdvance = true;
+		}, 50); // 50ms delay - just enough to prevent immediate skip
 	}
 
 	// Handle Enter key in input
@@ -366,11 +383,25 @@
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			
-			// Only act if there are suggestions available
-			if (suggestions.length > 0) {
+			// If answer is shown and we can advance, go to next song
+			if (showAnswer && canAdvance) {
+				skipToNext();
+				return;
+			}
+			
+			// Only act if there are suggestions available and answer not shown
+			if (suggestions.length > 0 && !showAnswer) {
 				selectSuggestion(suggestions[0]);
 			}
-			// Do nothing if no suggestions
+			// Do nothing if no suggestions or answer already shown (but can't advance yet)
+		}
+	}
+
+	// Handle global Enter key for next song
+	function handleGlobalKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && showAnswer && canAdvance) {
+			event.preventDefault();
+			skipToNext();
 		}
 	}
 
@@ -386,6 +417,9 @@
 		if (tracks.length > 0) {
 			initializePlayer();
 		}
+		
+		// Add global keydown listener
+		document.addEventListener('keydown', handleGlobalKeydown);
 	});
 
 	// Cleanup on destroy
@@ -393,12 +427,24 @@
 		if (player) {
 			player.disconnect();
 		}
+		
+		// Remove global keydown listener
+		document.removeEventListener('keydown', handleGlobalKeydown);
 	});
 
 	// Auto-start first round when player is ready
 	$effect(() => {
 		if (playerState === 'ready' && !currentTrack && tracks.length > 0) {
 			startRound();
+		}
+	});
+
+	// Auto-focus input when a new round starts
+	$effect(() => {
+		if (currentTrack && !showAnswer && guessInputElement) {
+			setTimeout(() => {
+				guessInputElement.focus();
+			}, 100);
 		}
 	});
 </script>
@@ -498,12 +544,14 @@
 
 				<!-- Guess Input -->
 				<div class="relative mb-4">
-					<Input
+					<input
+						bind:this={guessInputElement}
 						bind:value={guessInput}
 						placeholder="Enter your guess..."
 						disabled={showAnswer}
-						class="border-slate-600 bg-slate-700 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-green-400"
-						onKeydown={handleKeydown}
+						class="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+						onkeydown={handleKeydown}
+						autofocus
 					/>
 
 					<!-- Suggestions Dropdown -->
@@ -563,7 +611,13 @@
 
 				<!-- Next Button -->
 				{#if showAnswer}
-					<Button onclick={skipToNext} class="w-full">Next Song</Button>
+					<Button 
+						onclick={skipToNext} 
+						class="w-full {canAdvance ? '' : 'opacity-50 cursor-not-allowed'}"
+						disabled={!canAdvance}
+					>
+						Next Song {canAdvance ? '(Enter)' : ''}
+					</Button>
 				{/if}
 			</div>
 		{:else if playerState === 'ready'}
