@@ -641,10 +641,10 @@
 							<span>Incorrect!</span>
 						</div>
 					{/if}
-
-					{#if !showAnswer && guessInput.trim()}
+				<!-- //mobile button, will add later -->
+					<!-- {#if !showAnswer && guessInput.trim()}
 						<Button onclick={submitGuess} size="sm">Submit Guess</Button>
-					{/if}
+					{/if} -->
 				</div>
 
 				<!-- Show Answer -->
