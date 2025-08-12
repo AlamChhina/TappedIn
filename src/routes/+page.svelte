@@ -47,10 +47,10 @@
 					<!-- CTA Button -->
 					<Button
 						onclick={handleSignIn}
-						class="w-full px-6 font-medium text-black transition-all duration-200 hover:scale-[1.02] focus:scale-[1.02] focus:outline-none focus:ring-0"
+						class="w-full font-medium text-black transition-all duration-200 hover:scale-[1.02] focus:scale-[1.02] focus:outline-none focus:ring-0"
 						style="--spotify: #1DB954; background-color: var(--spotify); border-color: var(--spotify);"
 					>
-						<LogIn class="mr-2 h-5 w-5" aria-hidden="true" />
+						<img src="/spotify logo/Black.svg" alt="" class="mr-2 h-6 w-6" />
 						Sign in with Spotify
 					</Button>
 
