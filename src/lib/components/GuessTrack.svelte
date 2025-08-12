@@ -8,6 +8,20 @@
 	import { pickRandom } from '$lib/utils/random';
 	import type { GameTrack, PlayerState, GuessStatus } from '$lib/types';
 
+	// Normalize text for search - remove punctuation and extra spaces for better matching
+	function normalizeForSearch(text: string): string {
+		return text
+			.toLowerCase()
+			// Replace common variations to be more forgiving
+			.replace(/&/g, 'and') // Convert & to "and"
+			.replace(/\b(feat|ft)\.?\s/gi, '') // Remove "feat." or "ft." 
+			// Remove all punctuation and special characters, keep only letters, numbers, and spaces
+			.replace(/[^\w\s]/g, '')
+			// Collapse multiple spaces into single spaces
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
 	// Props
 	interface Props {
 		tracks: GameTrack[];
@@ -49,8 +63,10 @@
 			return;
 		}
 
-		const query = guessInput.toLowerCase();
-		suggestions = tracks.filter((track) => track.name.toLowerCase().includes(query)).slice(0, 5); // Limit to 5 suggestions
+		const normalizedQuery = normalizeForSearch(guessInput);
+		suggestions = tracks.filter((track) => 
+			normalizeForSearch(track.name).includes(normalizedQuery)
+		).slice(0, 5); // Limit to 5 suggestions
 		
 		// Reset selection when suggestions change
 		hoveredSuggestionIndex = null;
