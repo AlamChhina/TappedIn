@@ -12,6 +12,9 @@
 	function normalizeForSearch(text: string): string {
 		return text
 			.toLowerCase()
+			// Normalize Unicode characters and remove diacritics (accents)
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
 			// Replace common variations to be more forgiving
 			.replace(/&/g, 'and') // Convert & to "and"
 			.replace(/\b(feat|ft)\.?\s/gi, '') // Remove "feat." or "ft." 
