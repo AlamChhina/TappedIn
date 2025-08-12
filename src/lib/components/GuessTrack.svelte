@@ -51,6 +51,7 @@
 	let showAnswer = $state(false);
 	let canAdvance = $state(false); // Separate state for when Enter can advance
 	let streak = $state(0); // Track correct guesses in a row
+	let retryCount = $state(0); // Track auto-retry attempts
 
 	// Spotify SDK references
 	let player: any = null;
@@ -114,7 +115,7 @@
 						console.error('SDK ready callback timeout');
 						reject(new Error('SDK ready callback timeout'));
 					}
-				}, 10000); // 10 second timeout
+				}, 15000); // Increased timeout to 15 seconds
 			};
 
 			script.onerror = () => {
@@ -153,6 +154,9 @@
 
 			await loadSpotifySDK();
 			console.log('SDK loaded, creating player...');
+
+			// Add a small delay to ensure SDK is fully ready
+			await new Promise(resolve => setTimeout(resolve, 500));
 
 			player = new window.Spotify.Player({
 				name: 'Guess the Song Game',
@@ -212,6 +216,17 @@
 			console.error('Player initialization failed:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to initialize player';
 			playerState = 'error';
+			
+			// Auto-retry after a short delay if this is the first attempt (max 2 retries)
+			if (retryCount < 2) {
+				retryCount += 1;
+				setTimeout(() => {
+					if (playerState === 'error' && tracks.length > 0) {
+						console.log(`Auto-retrying player initialization... (attempt ${retryCount + 1}/3)`);
+						initializePlayer();
+					}
+				}, 2000);
+			}
 		}
 	}
 
@@ -449,12 +464,18 @@
 
 	// Initialize on mount
 	onMount(() => {
-		if (tracks.length > 0) {
-			initializePlayer();
-		}
-		
 		// Add global keydown listener
 		document.addEventListener('keydown', handleGlobalKeydown);
+		
+		// Reset retry count when component mounts
+		retryCount = 0;
+		
+		// Delay initialization slightly to ensure DOM is ready
+		setTimeout(() => {
+			if (tracks.length > 0) {
+				initializePlayer();
+			}
+		}, 100);
 	});
 
 	// Cleanup on destroy
@@ -471,6 +492,14 @@
 	$effect(() => {
 		if (playerState === 'ready' && !currentTrack && tracks.length > 0) {
 			startRound();
+		}
+	});
+
+	// Initialize player when tracks change (new artist selected)
+	$effect(() => {
+		if (tracks.length > 0 && playerState === 'idle') {
+			retryCount = 0;
+			initializePlayer();
 		}
 	});
 
@@ -519,7 +548,7 @@
 						<Loader2 class="h-4 w-4 animate-spin" />
 						<span>Connecting to Spotify...</span>
 					</div>
-					<Button onclick={initializePlayer} size="sm" variant="outline">Retry Connection</Button>
+					<Button onclick={() => { retryCount = 0; initializePlayer(); }} size="sm" variant="outline">Retry Connection</Button>
 				</div>
 			{:else if playerState === 'ready'}
 				<div class="flex items-center gap-2 text-green-400">
@@ -537,7 +566,7 @@
 						<AlertCircle class="h-4 w-4" />
 						<span>Connection failed</span>
 					</div>
-					<Button onclick={initializePlayer} size="sm" variant="outline">Retry Connection</Button>
+					<Button onclick={() => { retryCount = 0; initializePlayer(); }} size="sm" variant="outline">Retry Connection</Button>
 				</div>
 			{/if}
 		</div>
