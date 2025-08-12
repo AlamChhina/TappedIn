@@ -164,7 +164,7 @@
 				bind:ref={searchInputRef}
 				bind:value={searchQuery}
 				placeholder="Search for an artist..."
-				class="border-slate-700 bg-slate-800/80 pr-10 pl-10 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-green-400"
+				class="pr-10 pl-10 text-white placeholder:text-gray-400 border-[#282828] bg-[#282828] focus-visible:ring-2 focus-visible:ring-spotify-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] focus:border-spotify-green"
 				onInput={handleInput}
 				onKeydown={handleKeydown}
 				onFocus={() => {
@@ -183,14 +183,17 @@
 		<!-- Search Results Dropdown -->
 		{#if showDropdown && searchResults.length > 0}
 			<div
-				class="absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-slate-700 bg-slate-800 shadow-lg"
+				class="absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-md border shadow-lg"
+				style="border-color: #282828; background-color: #181818;"
 			>
 				{#each searchResults as artist, index}
 					<button
-						class="flex w-full items-center gap-3 p-3 transition-colors hover:bg-slate-700 focus:bg-slate-700 focus:outline-none {selectedIndex ===
+						class="flex w-full items-center gap-3 p-3 transition-colors focus:outline-none {selectedIndex ===
 						index
-							? 'bg-slate-700'
+							? ''
 							: ''}"
+						style="background-color: {selectedIndex === index ? '#282828' : 'transparent'};"
+						onmouseenter={() => (selectedIndex = index)}
 						onclick={() => fetchArtistTracks(artist)}
 					>
 						{#if artist.images.length > 0}
@@ -200,7 +203,7 @@
 								class="h-10 w-10 rounded-full object-cover"
 							/>
 						{:else}
-							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-600">
+							<div class="flex h-10 w-10 items-center justify-center rounded-full" style="background-color: #282828;">
 								<Music class="h-5 w-5 text-gray-400" />
 							</div>
 						{/if}
@@ -245,10 +248,11 @@
 				Primary tracks by {selectedArtist.name} ({tracks.length} songs)
 			</h3>
 
-			<div class="space-y-2 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+			<div class="space-y-2 rounded-lg border p-4" style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);">
 				{#each tracks as track, index}
 					<div
-						class="flex items-center justify-between rounded p-2 transition-colors hover:bg-slate-700/50"
+						class="flex items-center justify-between rounded p-2 transition-colors"
+						style="hover:background-color: rgba(40, 40, 40, 0.5);"
 					>
 						<div class="flex-1">
 							<span class="font-medium text-white">{track.name}</span>
@@ -258,7 +262,7 @@
 								</span>
 							{/if}
 						</div>
-						<span class="ml-4 text-sm font-medium text-green-400">
+						<span class="ml-4 text-sm font-medium text-spotify-green">
 							{track.popularity}
 						</span>
 					</div>

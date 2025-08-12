@@ -118,4 +118,39 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+	/* Spotify Green Custom Color */
+	.text-spotify-green {
+		color: #1DB954;
+	}
+	.bg-spotify-green {
+		background-color: #1ED760;
+	}
+	.border-spotify-green {
+		border-color: #1ED760;
+	}
+	.ring-spotify-green {
+		--tw-ring-color: #1ED760;
+	}
+	.focus\:border-spotify-green:focus {
+		border-color: #1ED760;
+	}
+	.focus\:ring-spotify-green:focus {
+		--tw-ring-color: #1ED760;
+	}
+	/* Spotify Color Palette */
+	.bg-spotify-black {
+		background-color: #121212;
+	}
+	.bg-spotify-dark-gray {
+		background-color: #181818;
+	}
+	.bg-spotify-gray {
+		background-color: #282828;
+	}
+	.border-spotify-gray {
+		border-color: #282828;
+	}
+	.text-spotify-light-gray {
+		color: #b3b3b3;
+	}
 }

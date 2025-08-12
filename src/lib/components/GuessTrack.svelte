@@ -492,7 +492,7 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
-	<div class="rounded-lg border border-slate-700 bg-slate-800/60 p-6">
+	<div class="rounded-lg border p-6" style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);">
 		<div class="mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<!-- Artist Image -->
@@ -500,10 +500,11 @@
 					<img
 						src={artist.images[0].url}
 						alt={displayArtistName}
-						class="h-12 w-12 rounded-full object-cover border-2 border-slate-600"
+						class="h-12 w-12 rounded-full object-cover border-2"
+						style="border-color: #282828;"
 					/>
 				{:else}
-					<div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-600 border-2 border-slate-500">
+					<div class="flex h-12 w-12 items-center justify-center rounded-full border-2" style="background-color: #282828; border-color: #181818;">
 						<Music class="h-6 w-6 text-gray-400" />
 					</div>
 				{/if}
@@ -514,17 +515,14 @@
 			</div>
 			
 			<!-- Streak Counter -->
-			<div class="flex items-center gap-2 rounded-lg bg-slate-700/60 px-3 py-1.5">
+			<div class="flex items-center gap-2 rounded-lg px-3 py-1.5" style="background-color: rgba(40, 40, 40, 0.6);">
 				{#if streak >= 3}
 					<Flame class="h-4 w-4 text-orange-400" />
 				{/if}
 				<div class="text-sm font-medium text-gray-300">Streak:</div>
-				<div class="text-lg font-bold {streak > 0 ? 'text-green-400' : 'text-gray-400'}">
+				<div class="text-lg font-bold {streak > 0 ? 'text-spotify-green' : 'text-gray-400'}">
 					{streak}
 				</div>
-				{#if streak >= 5}
-					<span class="text-xs font-medium text-orange-400">🔥</span>
-				{/if}
 			</div>
 		</div>
 
@@ -544,7 +542,7 @@
 					<Button onclick={() => { retryCount = 0; initializePlayer(); }} size="sm" variant="outline">Retry Connection</Button>
 				</div>
 			{:else if playerState === 'ready'}
-				<div class="flex items-center gap-2 text-green-400">
+				<div class="flex items-center gap-2 text-spotify-green">
 					<CheckCircle class="h-4 w-4" />
 					<span>Player connected</span>
 					{#if isTransferring}
@@ -604,25 +602,24 @@
 						bind:value={guessInput}
 						placeholder="Enter your guess..."
 						disabled={showAnswer}
-						class="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex h-10 w-full rounded-md border px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-spotify-green focus:outline-none focus:ring-2 focus:ring-spotify-green disabled:cursor-not-allowed disabled:opacity-50"
+						style="border-color: #282828; background-color: #121212; --tw-ring-offset-color: #121212;"
 						onkeydown={handleKeydown}
 					/>
 
 					<!-- Suggestions Dropdown -->
 					{#if suggestions.length > 0 && !showAnswer}
 						<div
-							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-32 overflow-y-auto rounded-md border border-slate-600 bg-slate-700 shadow-lg"
+							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-32 overflow-y-auto rounded-md border shadow-lg"
+							style="border-color: #282828; background-color: #181818;"
 						>
 							{#each suggestions as suggestion, index}
 								<button
-									class="w-full px-3 py-2 text-left text-sm text-white {
-										hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && selectedSuggestionIndex === index)
-											? 'bg-slate-600'
-											: 'hover:bg-slate-600'
-									}"
+									class="w-full px-3 py-2 text-left text-sm text-white"
+									style="background-color: {(hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && selectedSuggestionIndex === index)) ? '#282828' : 'transparent'};"
+									onmouseenter={() => (hoveredSuggestionIndex = index)}
+									onmouseleave={() => (hoveredSuggestionIndex = null)}
 									onclick={() => selectSuggestion(suggestion)}
-									onmouseenter={() => hoveredSuggestionIndex = index}
-									onmouseleave={() => hoveredSuggestionIndex = null}
 								>
 									{suggestion.name}
 								</button>
@@ -634,7 +631,7 @@
 				<!-- Guess Status -->
 				<div class="mb-4 flex items-center gap-4">
 					{#if guessStatus === 'correct'}
-						<div class="flex items-center gap-2 text-green-400">
+						<div class="flex items-center gap-2 text-spotify-green">
 							<CheckCircle class="h-5 w-5" />
 							<span>Correct!</span>
 						</div>
@@ -653,11 +650,12 @@
 				<!-- Show Answer -->
 				{#if showAnswer}
 					<div
-						class="mb-4 rounded-md border {guessStatus === 'correct'
-							? 'border-green-800 bg-green-900/20'
-							: 'border-blue-800 bg-blue-900/20'} p-3"
+						class="mb-4 rounded-md border p-3"
+						style={guessStatus === 'correct' 
+							? 'border-color: #1DB954; background-color: rgba(29, 185, 84, 0.1);' 
+							: 'border-color: rgb(30 64 175); background-color: rgba(30, 64, 175, 0.1);'}
 					>
-						<p class="font-medium {guessStatus === 'correct' ? 'text-green-400' : 'text-blue-400'}">
+						<p class="font-medium {guessStatus === 'correct' ? 'text-spotify-green' : 'text-blue-400'}">
 							"{currentTrack.name}" by {currentTrack.artistNames.join(', ')}
 						</p>
 					</div>

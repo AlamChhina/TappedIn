@@ -33,7 +33,7 @@
 	<!-- Pre-login state: Show sign-in card -->
 	<main class="flex min-h-[calc(100vh-80px)] items-center justify-center p-4">
 		<div class="w-full max-w-md">
-			<Card class="border-slate-700 bg-slate-800/80 backdrop-blur-sm">
+			<Card class="border-none backdrop-blur-sm" style="background-color: #121212;">
 				<CardHeader class="text-center">
 					<CardTitle class="text-xl text-white">Sign in With Spotify To Play</CardTitle>
 					<CardDescription class="text-gray-300">
@@ -47,7 +47,7 @@
 					<!-- CTA Button -->
 					<Button
 						onclick={handleSignIn}
-						class="w-full px-6 font-medium text-white transition-all duration-200 hover:scale-[1.02] focus:scale-[1.02] focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+						class="w-full px-6 font-medium text-black transition-all duration-200 hover:scale-[1.02] focus:scale-[1.02] focus:outline-none focus:ring-0"
 						style="--spotify: #1DB954; background-color: var(--spotify); border-color: var(--spotify);"
 					>
 						<LogIn class="mr-2 h-5 w-5" aria-hidden="true" />
@@ -70,7 +70,7 @@
 				<h2 class="mb-2 text-2xl font-bold text-white">
 					Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}!
 				</h2>
-				<p class="text-gray-400">You're signed in and ready to explore music.</p>
+				<p class="text-gray-400">Search for an artist and play</p>
 			</div>
 
 			<!-- Artist Search Component -->
