@@ -19,11 +19,15 @@
 	let playerState = $state<PlayerState>('idle');
 	let deviceId = $state<string | null>(null);
 	let currentTrack = $state<GameTrack | null>(null);
+	let nextTrack = $state<GameTrack | null>(null); // Preloaded next track
+	let usedTracks = $state<Set<string>>(new Set()); // Track used songs to avoid repeats
 	let guessStatus = $state<GuessStatus>('idle');
 	let guessInput = $state('');
 	let suggestions = $state<GameTrack[]>([]);
+	let hoveredSuggestionIndex = $state<number | null>(null);
 	let isTransferring = $state(false);
 	let isPlaying = $state(false);
+	let isPreloading = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let showAnswer = $state(false);
 	let streak = $state(0); // Track correct guesses in a row
@@ -36,11 +40,15 @@
 	$effect(() => {
 		if (!guessInput.trim() || showAnswer) {
 			suggestions = [];
+			hoveredSuggestionIndex = null;
 			return;
 		}
 
 		const query = guessInput.toLowerCase();
 		suggestions = tracks.filter((track) => track.name.toLowerCase().includes(query)).slice(0, 5); // Limit to 5 suggestions
+		
+		// Reset hover state when suggestions change
+		hoveredSuggestionIndex = null;
 	});
 
 	// Load Spotify Web Playback SDK
@@ -212,19 +220,84 @@
 		}
 	}
 
+	// Pick a random unused track
+	function pickUnusedTrack(): GameTrack | null {
+		const availableTracks = tracks.filter(track => !usedTracks.has(track.id));
+		
+		// If all tracks have been used, reset the used tracks set
+		if (availableTracks.length === 0) {
+			console.log('All tracks used, resetting...');
+			usedTracks.clear();
+			return pickRandom(tracks);
+		}
+		
+		return pickRandom(availableTracks);
+	}
+
+	// Preload the next track by adding it to Spotify's queue
+	async function preloadNextTrack() {
+		if (isPreloading || tracks.length === 0 || !deviceId) return;
+		
+		try {
+			isPreloading = true;
+			const track = pickUnusedTrack();
+			if (track) {
+				nextTrack = track;
+				console.log('Preloading next track to queue:', track.name);
+				
+				// Add the track to Spotify's queue for faster switching
+				await fetch(`/api/spotify/player/queue?device_id=${deviceId}`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ uri: track.uri })
+				});
+				
+				console.log('Successfully queued next track:', track.name);
+			}
+		} catch (error) {
+			console.error('Failed to preload next track:', error);
+			// Don't throw error, just log it - preloading is optional
+		} finally {
+			isPreloading = false;
+		}
+	}
+
+	// Skip to next track (optimized version using preloaded track)
+	async function skipToNext() {
+		await startRound(); // Use the optimized startRound that uses preloaded tracks
+	}
+
 	// Start a new round
 	async function startRound() {
 		if (tracks.length === 0) return;
 
-		const newTrack = pickRandom(tracks);
+		// Use preloaded track if available, otherwise pick a new one
+		let newTrack: GameTrack | null = null;
+		
+		if (nextTrack) {
+			newTrack = nextTrack;
+			nextTrack = null; // Clear the preloaded track
+			console.log('Using preloaded track:', newTrack.name);
+		} else {
+			newTrack = pickUnusedTrack();
+		}
+
 		if (!newTrack) return;
 
+		// Mark this track as used
+		usedTracks.add(newTrack.id);
+		
 		currentTrack = newTrack;
 		guessStatus = 'idle';
 		guessInput = '';
 		suggestions = [];
 		showAnswer = false;
 		errorMessage = null;
+
+		// Preload the next track while this one is playing
+		preloadNextTrack();
 
 		// Auto-play the new track
 		if (playerState === 'ready' && deviceId) {
@@ -240,15 +313,20 @@
 			isPlaying = true;
 			errorMessage = null;
 
+			// Prepare the request payload
+			const payload = {
+				uris: [currentTrack.uri],
+				position_ms: 0
+			};
+
+			console.log('Starting playback for:', currentTrack.name);
+
 			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					uris: [currentTrack.uri],
-					position_ms: 0
-				})
+				body: JSON.stringify(payload)
 			});
 
 			if (!response.ok) {
@@ -256,7 +334,7 @@
 				throw new Error(errorText);
 			}
 
-			console.log('Playing track:', currentTrack.name);
+			console.log('Track started successfully:', currentTrack.name);
 		} catch (error) {
 			console.error('Play failed:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to play track';
@@ -287,7 +365,12 @@
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			submitGuess();
+			
+			// Only act if there are suggestions available
+			if (suggestions.length > 0) {
+				selectSuggestion(suggestions[0]);
+			}
+			// Do nothing if no suggestions
 		}
 	}
 
@@ -363,6 +446,8 @@
 					<span>Player connected</span>
 					{#if isTransferring}
 						<span class="text-gray-400">(transferring...)</span>
+					{:else if isPreloading}
+						<span class="text-blue-400">(preloading next...)</span>
 					{/if}
 				</div>
 			{:else if playerState === 'error'}
@@ -426,10 +511,16 @@
 						<div
 							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-32 overflow-y-auto rounded-md border border-slate-600 bg-slate-700 shadow-lg"
 						>
-							{#each suggestions as suggestion}
+							{#each suggestions as suggestion, index}
 								<button
-									class="w-full px-3 py-2 text-left text-sm text-white hover:bg-slate-600"
+									class="w-full px-3 py-2 text-left text-sm text-white {
+										hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && index === 0)
+											? 'bg-slate-600'
+											: 'hover:bg-slate-600'
+									}"
 									onclick={() => selectSuggestion(suggestion)}
+									onmouseenter={() => hoveredSuggestionIndex = index}
+									onmouseleave={() => hoveredSuggestionIndex = null}
 								>
 									{suggestion.name}
 								</button>
@@ -472,7 +563,7 @@
 
 				<!-- Next Button -->
 				{#if showAnswer}
-					<Button onclick={startRound} class="w-full">Next Song</Button>
+					<Button onclick={skipToNext} class="w-full">Next Song</Button>
 				{/if}
 			</div>
 		{:else if playerState === 'ready'}
