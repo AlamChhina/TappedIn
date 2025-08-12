@@ -3,14 +3,7 @@
 	import { Search, Music, Loader2 } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
-	import type { GameTrack } from '$lib/types';
-
-	// Types for our API responses
-	interface Artist {
-		id: string;
-		name: string;
-		images: { url: string; height: number; width: number }[];
-	}
+	import type { GameTrack, Artist } from '$lib/types';
 
 	// Component state
 	let searchQuery = $state('');
@@ -211,7 +204,10 @@
 								<Music class="h-5 w-5 text-gray-400" />
 							</div>
 						{/if}
-						<span class="text-left text-white">{artist.name}</span>
+						<div class="flex flex-1 items-center justify-between">
+							<span class="text-left text-white">{artist.name}</span>
+							<span class="text-xs text-gray-400 font-medium">Artist</span>
+						</div>
 					</button>
 				{/each}
 			</div>
@@ -271,7 +267,7 @@
 			-->
 
 			<!-- Guess Track Component -->
-			<GuessTrack {tracks} artistName={selectedArtist.name} />
+			<GuessTrack {tracks} artist={selectedArtist} />
 		</div>
 	{:else if selectedArtist && !isFetchingTracks && !tracksError}
 		<div class="p-8 text-center text-gray-400">

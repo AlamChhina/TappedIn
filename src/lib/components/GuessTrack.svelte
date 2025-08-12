@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { tick } from 'svelte';
-	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle, Flame } from 'lucide-svelte';
+	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle, Flame, Music } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { normalizeTitle } from '$lib/utils/normalizeTitle';
 	import { pickRandom } from '$lib/utils/random';
-	import type { GameTrack, PlayerState, GuessStatus } from '$lib/types';
+	import type { GameTrack, PlayerState, GuessStatus, Artist } from '$lib/types';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -28,10 +28,14 @@
 	// Props
 	interface Props {
 		tracks: GameTrack[];
+		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, artistName = 'Unknown Artist' }: Props = $props();
+	let { tracks, artist, artistName }: Props = $props();
+
+	// Derive artist name from artist object or fallback to artistName prop
+	const displayArtistName = $derived(artist?.name || artistName || 'Unknown Artist');
 
 	// Component state
 	let playerState = $state<PlayerState>('idle');
@@ -490,9 +494,24 @@
 <div class="mx-auto w-full max-w-2xl space-y-6">
 	<div class="rounded-lg border border-slate-700 bg-slate-800/60 p-6">
 		<div class="mb-4 flex items-center justify-between">
-			<h3 class="text-xl font-semibold text-white">
-				Guess the song by {artistName}
-			</h3>
+			<div class="flex items-center gap-3">
+				<!-- Artist Image -->
+				{#if artist?.images && artist.images.length > 0}
+					<img
+						src={artist.images[0].url}
+						alt={displayArtistName}
+						class="h-12 w-12 rounded-full object-cover border-2 border-slate-600"
+					/>
+				{:else}
+					<div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-600 border-2 border-slate-500">
+						<Music class="h-6 w-6 text-gray-400" />
+					</div>
+				{/if}
+				
+				<h3 class="text-xl font-semibold text-white">
+					Guess the song by {displayArtistName}
+				</h3>
+			</div>
 			
 			<!-- Streak Counter -->
 			<div class="flex items-center gap-2 rounded-lg bg-slate-700/60 px-3 py-1.5">

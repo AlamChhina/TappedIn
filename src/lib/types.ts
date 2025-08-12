@@ -7,6 +7,12 @@ export type GameTrack = {
 	artistNames: string[];
 };
 
+export type Artist = {
+	id: string;
+	name: string;
+	images: { url: string; height: number; width: number }[];
+};
+
 export type SpotifySDKToken = {
 	access_token: string;
 	expires_in: number;
