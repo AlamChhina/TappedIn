@@ -33,7 +33,7 @@
 
 	// Filter suggestions based on input
 	$effect(() => {
-		if (!guessInput.trim() || guessStatus === 'correct') {
+		if (!guessInput.trim() || showAnswer) {
 			suggestions = [];
 			return;
 		}
@@ -212,7 +212,7 @@
 	}
 
 	// Start a new round
-	function startRound() {
+	async function startRound() {
 		if (tracks.length === 0) return;
 
 		const newTrack = pickRandom(tracks);
@@ -224,6 +224,11 @@
 		suggestions = [];
 		showAnswer = false;
 		errorMessage = null;
+
+		// Auto-play the new track
+		if (playerState === 'ready' && deviceId) {
+			await playFromStart();
+		}
 	}
 
 	// Play current track from start
@@ -271,6 +276,7 @@
 			showAnswer = true;
 		} else {
 			guessStatus = 'incorrect';
+			showAnswer = true; // Show answer on incorrect guess too
 		}
 	}
 
@@ -380,20 +386,6 @@
 						{#if isPlaying}
 							<Loader2 class="h-4 w-4 animate-spin" />
 						{:else}
-							<Play class="h-4 w-4" />
-						{/if}
-						Play
-					</Button>
-
-					<Button
-						onclick={playFromStart}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying}
-						variant="outline"
-						class="flex items-center gap-2"
-					>
-						{#if isPlaying}
-							<Loader2 class="h-4 w-4 animate-spin" />
-						{:else}
 							<RotateCcw class="h-4 w-4" />
 						{/if}
 						Replay
@@ -405,13 +397,13 @@
 					<Input
 						bind:value={guessInput}
 						placeholder="Enter your guess..."
-						disabled={guessStatus === 'correct'}
+						disabled={showAnswer}
 						class="border-slate-600 bg-slate-700 text-white placeholder:text-gray-400 focus:border-green-400 focus:ring-green-400"
 						onKeydown={handleKeydown}
 					/>
 
 					<!-- Suggestions Dropdown -->
-					{#if suggestions.length > 0 && guessStatus !== 'correct'}
+					{#if suggestions.length > 0 && !showAnswer}
 						<div
 							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-32 overflow-y-auto rounded-md border border-slate-600 bg-slate-700 shadow-lg"
 						>
@@ -437,26 +429,30 @@
 					{:else if guessStatus === 'incorrect'}
 						<div class="flex items-center gap-2 text-red-400">
 							<XCircle class="h-5 w-5" />
-							<span>Try again!</span>
+							<span>Incorrect!</span>
 						</div>
 					{/if}
 
-					{#if guessStatus !== 'correct' && guessInput.trim()}
+					{#if !showAnswer && guessInput.trim()}
 						<Button onclick={submitGuess} size="sm">Submit Guess</Button>
 					{/if}
 				</div>
 
 				<!-- Show Answer -->
 				{#if showAnswer}
-					<div class="mb-4 rounded-md border border-green-800 bg-green-900/20 p-3">
-						<p class="font-medium text-green-400">
+					<div
+						class="mb-4 rounded-md border {guessStatus === 'correct'
+							? 'border-green-800 bg-green-900/20'
+							: 'border-blue-800 bg-blue-900/20'} p-3"
+					>
+						<p class="font-medium {guessStatus === 'correct' ? 'text-green-400' : 'text-blue-400'}">
 							"{currentTrack.name}" by {currentTrack.artistNames.join(', ')}
 						</p>
 					</div>
 				{/if}
 
 				<!-- Next Button -->
-				{#if guessStatus === 'correct'}
+				{#if showAnswer}
 					<Button onclick={startRound} class="w-full">Next Song</Button>
 				{/if}
 			</div>
