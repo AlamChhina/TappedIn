@@ -330,9 +330,9 @@
 		
 		await startRound(true); // Start a new round with auto-play enabled
 		
-		// Re-focus the input for the next round
+		// Re-focus the input for the next round (only if it's not the first song)
 		await tick(); // Wait for DOM update
-		if (guessInputElement && !showAnswer) {
+		if (guessInputElement && !showAnswer && !isFirstSongForArtist) {
 			guessInputElement.focus();
 		}
 	}
@@ -430,10 +430,16 @@
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
 			
-			// Mark that first song has been played for this artist
+			// Mark that first song has been played for this artist and focus input
 			if (isFirstSongForArtist) {
 				hasPlayedFirstSong = true;
 				isFirstSongForArtist = false;
+				// Focus the input after the first song starts playing
+				setTimeout(() => {
+					if (guessInputElement) {
+						guessInputElement.focus();
+					}
+				}, 100);
 			}
 		} catch (error) {
 			console.error('❌ Play failed:', error);
@@ -557,9 +563,9 @@
 		}
 	});
 
-	// Auto-focus input when a new round starts
+	// Auto-focus input when a new round starts (but only if first song has been played)
 	$effect(() => {
-		if (currentTrack && !showAnswer && guessInputElement) {
+		if (currentTrack && !showAnswer && !isFirstSongForArtist && guessInputElement) {
 			setTimeout(() => {
 				guessInputElement?.focus();
 			}, 100);
@@ -678,8 +684,8 @@
 					<input
 						bind:this={guessInputElement}
 						bind:value={guessInput}
-						placeholder="Enter your guess..."
-						disabled={showAnswer}
+						placeholder={isFirstSongForArtist ? "Press play to start guessing..." : "Enter your guess..."}
+						disabled={showAnswer || isFirstSongForArtist}
 						class="flex h-10 w-full rounded-md border px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-spotify-green focus:outline-none focus:ring-2 focus:ring-spotify-green disabled:cursor-not-allowed disabled:opacity-50"
 						style="border-color: #282828; background-color: #121212; --tw-ring-offset-color: #121212;"
 						onkeydown={handleKeydown}
