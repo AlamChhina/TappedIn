@@ -6,7 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { normalizeTitle } from '$lib/utils/normalizeTitle';
 	import { pickRandom } from '$lib/utils/random';
-	import type { GameTrack, PlayerState, GuessStatus, Artist } from '$lib/types';
+	import type { GameTrack, PlayerState, GuessStatus, Artist, SearchResult, SearchResultType } from '$lib/types';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -28,14 +28,58 @@
 	// Props
 	interface Props {
 		tracks: GameTrack[];
+		item?: SearchResult;
+		itemType?: SearchResultType;
+		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, artist, artistName }: Props = $props();
+	let { tracks, item, itemType, artist, artistName }: Props = $props();
 
-	// Derive artist name from artist object or fallback to artistName prop
-	const displayArtistName = $derived(artist?.name || artistName || 'Unknown Artist');
+	// Derive display properties from the selected item
+	const displayName = $derived(() => {
+		if (item) return item.name;
+		if (artist) return artist.name;
+		return artistName || 'Unknown';
+	});
+
+	const displayImage = $derived(() => {
+		if (item && item.images.length > 0) return item.images[0].url;
+		if (artist && artist.images.length > 0) return artist.images[0].url;
+		return null;
+	});
+
+	const displayType = $derived(() => {
+		if (itemType) return itemType;
+		return 'artist'; // Default for backward compatibility
+	});
+
+	const headerText = $derived(() => {
+		switch (displayType()) {
+			case 'artist':
+				return `Guess the song by ${displayName()}`;
+			case 'album':
+				return `Guess songs from "${displayName()}"`;
+			case 'playlist':
+				return `Guess songs from "${displayName()}"`;
+			default:
+				return `Guess the song by ${displayName()}`;
+		}
+	});
+
+	const playingText = $derived(() => {
+		switch (displayType()) {
+			case 'artist':
+				return `Playing songs by ${displayName()}`;
+			case 'album':
+				return `Playing songs from "${displayName()}"`;
+			case 'playlist':
+				return `Playing songs from "${displayName()}"`;
+			default:
+				return `Playing songs by ${displayName()}`;
+		}
+	});
 
 	// Component state
 	let playerState = $state<PlayerState>('idle');
@@ -577,22 +621,22 @@
 	<div class="rounded-lg border p-6" style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);">
 		<div class="mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<!-- Artist Image -->
-				{#if artist?.images && artist.images.length > 0}
+				<!-- Item Image -->
+				{#if displayImage()}
 					<img
-						src={artist.images[0].url}
-						alt={displayArtistName}
-						class="h-12 w-12 rounded-full object-cover border-2"
+						src={displayImage()}
+						alt={displayName()}
+						class="h-12 w-12 object-cover border-2 {displayType() === 'artist' ? 'rounded-full' : 'rounded-sm'}"
 						style="border-color: #282828;"
 					/>
 				{:else}
-					<div class="flex h-12 w-12 items-center justify-center rounded-full border-2" style="background-color: #282828; border-color: #181818;">
+					<div class="flex h-12 w-12 items-center justify-center border-2 {displayType() === 'artist' ? 'rounded-full' : 'rounded-sm'}" style="background-color: #282828; border-color: #181818;">
 						<Music class="h-6 w-6 text-gray-400" />
 					</div>
 				{/if}
 				
 				<h3 class="text-xl font-semibold text-white">
-					Guess the song by {displayArtistName}
+					{headerText()}
 				</h3>
 			</div>
 			

@@ -70,7 +70,7 @@
 				<h2 class="h2 mb-2 text-2xl text-white">
 					Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}!
 				</h2>
-				<p class="text-gray-400">Search for an artist and play</p>
+				<p class="text-gray-400">Search for artists, albums, or playlists and play</p>
 			</div>
 
 			<!-- Artist Search Component -->

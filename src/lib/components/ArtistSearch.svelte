@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { Input } from '$lib/components/ui/input';
-	import { Search, Music, Loader2 } from 'lucide-svelte';
+	import { Search, Music, Loader2, Album, ListMusic } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
-	import type { GameTrack, Artist } from '$lib/types';
+	import type { GameTrack, SearchResult, SearchResultType } from '$lib/types';
 
 	// Component state
 	let searchQuery = $state('');
-	let searchResults = $state<Artist[]>([]);
-	let selectedArtist = $state<Artist | null>(null);
+	let searchResults = $state<SearchResult[]>([]);
+	let selectedItem = $state<SearchResult | null>(null);
+	let selectedType = $state<SearchResultType | null>(null);
 	let tracks = $state<GameTrack[]>([]);
 	let isSearching = $state(false);
 	let isFetchingTracks = $state(false);
@@ -31,12 +32,12 @@
 		}
 
 		debounceTimer = setTimeout(async () => {
-			await searchArtists(query);
+			await searchItems(query);
 		}, 300);
 	}
 
-	// Search for artists
-	async function searchArtists(query: string) {
+	// Search for artists, albums, and playlists
+	async function searchItems(query: string) {
 		if (query.trim().length === 0) return;
 
 		isSearching = true;
@@ -49,13 +50,13 @@
 				throw new Error(`Search failed: ${response.statusText}`);
 			}
 
-			const artists: Artist[] = await response.json();
-			searchResults = artists;
-			showDropdown = artists.length > 0;
+			const results: SearchResult[] = await response.json();
+			searchResults = results;
+			showDropdown = results.length > 0;
 			selectedIndex = -1;
 		} catch (error) {
 			console.error('Search error:', error);
-			searchError = 'Failed to search artists. Please try again.';
+			searchError = 'Failed to search. Please try again.';
 			searchResults = [];
 			showDropdown = false;
 		} finally {
@@ -63,29 +64,39 @@
 		}
 	}
 
-	// Fetch tracks for selected artist
-	async function fetchArtistTracks(artist: Artist) {
-		selectedArtist = artist;
-		searchQuery = artist.name;
+	// Fetch tracks for selected item
+	async function fetchTracks(item: SearchResult) {
+		const type = (item as any).type as SearchResultType;
+		selectedItem = item;
+		selectedType = type;
+		searchQuery = item.name;
 		showDropdown = false;
 		isFetchingTracks = true;
 		tracksError = null;
 		tracks = [];
 
 		try {
-			const response = await fetch(
-				`/api/spotify/artist-tracks?artistId=${encodeURIComponent(artist.id)}`
-			);
+			let response;
+			
+			if (type === 'artist') {
+				response = await fetch(`/api/spotify/artist-tracks?artistId=${encodeURIComponent(item.id)}`);
+			} else if (type === 'album') {
+				response = await fetch(`/api/spotify/album-tracks?albumId=${encodeURIComponent(item.id)}`);
+			} else if (type === 'playlist') {
+				response = await fetch(`/api/spotify/playlist-tracks?playlistId=${encodeURIComponent(item.id)}`);
+			} else {
+				throw new Error('Unknown item type');
+			}
 
 			if (!response.ok) {
 				throw new Error(`Failed to fetch tracks: ${response.statusText}`);
 			}
 
-			const artistTracks: GameTrack[] = await response.json();
-			tracks = artistTracks;
+			const fetchedTracks: GameTrack[] = await response.json();
+			tracks = fetchedTracks;
 		} catch (error) {
 			console.error('Tracks error:', error);
-			tracksError = 'Failed to fetch artist tracks. Please try again.';
+			tracksError = `Failed to fetch ${type} tracks. Please try again.`;
 			tracks = [];
 		} finally {
 			isFetchingTracks = false;
@@ -108,7 +119,7 @@
 			case 'Enter':
 				event.preventDefault();
 				if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
-					fetchArtistTracks(searchResults[selectedIndex]);
+					fetchTracks(searchResults[selectedIndex]);
 				}
 				break;
 			case 'Escape':
@@ -134,12 +145,45 @@
 		debounceSearch(searchQuery);
 	}
 
+	// Get icon for result type
+	function getTypeIcon(type: SearchResultType) {
+		switch (type) {
+			case 'artist': return Music;
+			case 'album': return Album;
+			case 'playlist': return ListMusic;
+		}
+	}
+
+	// Get display name for result type
+	function getTypeName(type: SearchResultType) {
+		switch (type) {
+			case 'artist': return 'Artist';
+			case 'album': return 'Album';
+			case 'playlist': return 'Playlist';
+		}
+	}
+
+	// Get subtitle for search result
+	function getSubtitle(item: SearchResult, type: SearchResultType) {
+		switch (type) {
+			case 'artist':
+				return null;
+			case 'album':
+				return (item as any).artist || 'Unknown Artist';
+			case 'playlist':
+				const playlist = item as any;
+				const ownerName = playlist.owner?.display_name || 'Unknown User';
+				return playlist.isUserOwned ? `${ownerName} • Your Playlist` : ownerName;
+		}
+	}
+
 	// Reset search when input is cleared
 	$effect(() => {
 		if (searchQuery.trim().length === 0) {
 			searchResults = [];
 			showDropdown = false;
-			selectedArtist = null;
+			selectedItem = null;
+			selectedType = null;
 			tracks = [];
 			searchError = null;
 			tracksError = null;
@@ -163,7 +207,7 @@
 			<Input
 				bind:ref={searchInputRef}
 				bind:value={searchQuery}
-				placeholder="Search for an artist..."
+				placeholder="Search for artists, albums, or playlists..."
 				class="pr-10 pl-10 text-white placeholder:text-gray-400 border-[#282828] bg-[#282828] focus-visible:ring-2 focus-visible:ring-spotify-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] focus:border-spotify-green"
 				onInput={handleInput}
 				onKeydown={handleKeydown}
@@ -186,31 +230,34 @@
 				class="absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-md border shadow-lg"
 				style="border-color: #282828; background-color: #181818;"
 			>
-				{#each searchResults as artist, index}
+				{#each searchResults as item, index}
+					{@const type = (item as any).type as SearchResultType}
+					{@const Icon = getTypeIcon(type)}
+					{@const subtitle = getSubtitle(item, type)}
 					<button
-						class="flex w-full items-center gap-3 p-3 transition-colors focus:outline-none {selectedIndex ===
-						index
-							? ''
-							: ''}"
+						class="flex w-full items-center gap-3 p-3 transition-colors focus:outline-none"
 						style="background-color: {selectedIndex === index ? '#282828' : 'transparent'};"
 						onmouseenter={() => (selectedIndex = index)}
-						onclick={() => fetchArtistTracks(artist)}
+						onclick={() => fetchTracks(item)}
 					>
-						{#if artist.images.length > 0}
+						{#if item.images.length > 0}
 							<img
-								src={artist.images[artist.images.length - 1].url}
-								alt={artist.name}
-								class="h-10 w-10 rounded-full object-cover"
+								src={item.images[item.images.length - 1].url}
+								alt={item.name}
+								class="h-10 w-10 object-cover {type === 'artist' ? 'rounded-full' : 'rounded-sm'}"
 							/>
 						{:else}
-							<div class="flex h-10 w-10 items-center justify-center rounded-full" style="background-color: #282828;">
-								<Music class="h-5 w-5 text-gray-400" />
+							<div class="flex h-10 w-10 items-center justify-center {type === 'artist' ? 'rounded-full' : 'rounded-sm'}" style="background-color: #282828;">
+								<Icon class="h-5 w-5 text-gray-400" />
 							</div>
 						{/if}
-						<div class="flex flex-1 items-center justify-between">
-							<span class="text-left text-white">{artist.name}</span>
-							<span class="text-xs text-gray-400 font-medium">Artist</span>
+						<div class="flex flex-1 flex-col items-start">
+							<span class="text-left text-white font-medium">{item.name}</span>
+							{#if subtitle}
+								<span class="text-xs text-gray-400">{subtitle}</span>
+							{/if}
 						</div>
+						<span class="text-xs text-gray-400 font-medium">{getTypeName(type)}</span>
 					</button>
 				{/each}
 			</div>
@@ -225,10 +272,10 @@
 	{/if}
 
 	<!-- Loading State for Tracks -->
-	{#if isFetchingTracks}
+	{#if isFetchingTracks && selectedItem && selectedType}
 		<div class="flex items-center justify-center gap-2 p-8 text-gray-400">
 			<Loader2 class="h-6 w-6 animate-spin" />
-			<span>Fetching tracks for {selectedArtist?.name}...</span>
+			<span>Fetching tracks from {selectedItem.name}...</span>
 		</div>
 	{/if}
 
@@ -240,45 +287,17 @@
 	{/if}
 
 	<!-- Tracks List -->
-	{#if tracks.length > 0 && selectedArtist}
+	{#if tracks.length > 0 && selectedItem && selectedType}
 		<div class="space-y-4">
-			<!-- Comment out the tracks list display for now -->
-			<!-- 
-			<h3 class="text-xl font-semibold text-white">
-				Primary tracks by {selectedArtist.name} ({tracks.length} songs)
-			</h3>
-
-			<div class="space-y-2 rounded-lg border p-4" style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);">
-				{#each tracks as track, index}
-					<div
-						class="flex items-center justify-between rounded p-2 transition-colors"
-						style="hover:background-color: rgba(40, 40, 40, 0.5);"
-					>
-						<div class="flex-1">
-							<span class="font-medium text-white">{track.name}</span>
-							{#if track.artistNames.length > 1}
-								<span class="ml-2 text-sm text-gray-400">
-									(feat. {track.artistNames.slice(1).join(', ')})
-								</span>
-							{/if}
-						</div>
-						<span class="ml-4 text-sm font-medium text-spotify-green">
-							{track.popularity}
-						</span>
-					</div>
-				{/each}
-			</div>
-			-->
-
 			<!-- Guess Track Component -->
-			<GuessTrack {tracks} artist={selectedArtist} />
+			<GuessTrack {tracks} item={selectedItem} itemType={selectedType} />
 		</div>
-	{:else if selectedArtist && !isFetchingTracks && !tracksError}
+	{:else if selectedItem && selectedType && !isFetchingTracks && !tracksError}
 		<div class="p-8 text-center text-gray-400">
 			<Music class="mx-auto mb-4 h-12 w-12 opacity-50" />
-			<p>No tracks found for {selectedArtist.name} that meet the criteria.</p>
+			<p>No tracks found for {selectedItem.name} that meet the criteria.</p>
 			<p class="mt-2 text-sm">
-				Looking for primary tracks over 30 seconds from albums and singles.
+				Looking for tracks over 30 seconds that can be played in the game.
 			</p>
 		</div>
 	{/if}
