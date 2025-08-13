@@ -123,17 +123,20 @@
 				const normalizedTrackName = normalizeForSearch(track.name);
 				
 				// For playlists, also consider artist names in the search
-				let searchTargets = [normalizedTrackName];
+				let searchTargets: string[] = [];
 				
 				if (displayType() === 'playlist') {
-					// Add "track artist" combinations
-					searchTargets.push(
+					// For playlists, only include "track artist" combinations (not just track name)
+					searchTargets = [
 						...track.artistNames.map(artist => 
 							normalizeForSearch(`${track.name} ${artist}`)
 						),
 						// Add combined artist search
 						normalizeForSearch(`${track.name} ${track.artistNames.join(', ')}`)
-					);
+					];
+				} else {
+					// For artists and albums, just the track name is sufficient
+					searchTargets = [normalizedTrackName];
 				}
 				
 				// Calculate match score across all search targets (higher is better)
@@ -522,10 +525,9 @@
 		let isCorrect = false;
 
 		if (displayType() === 'playlist') {
-			// For playlists, check if the guess matches any combination of "title artist"
+			// For playlists, require both title and artist to be specified
+			// Check if the guess matches "title artist" combinations
 			const possibleAnswers = [
-				// Just the title
-				normalizedTitle,
 				// Title with any of the artists
 				...currentTrack.artistNames.map(artist => 
 					normalizeTitle(`${currentTrack!.name} ${artist}`)
@@ -536,7 +538,7 @@
 
 			isCorrect = possibleAnswers.some(answer => normalizedGuess === answer);
 		} else {
-			// For artist and album types, just check the title
+			// For artist and album types, just check the title (since artist is implied)
 			isCorrect = normalizedGuess === normalizedTitle;
 		}
 
