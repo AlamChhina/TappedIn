@@ -54,6 +54,8 @@
 	let canAdvance = $state(false); // Separate state for when Enter can advance
 	let streak = $state(0); // Track correct guesses in a row
 	let retryCount = $state(0); // Track auto-retry attempts
+	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
+	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
 
 	// Spotify SDK references
 	let player: any = null;
@@ -197,14 +199,15 @@
 				console.log('Player ready with device ID:', device_id);
 				deviceId = device_id;
 				playerState = 'ready';
-				transferPlayback();
+				// Don't auto-transfer playback since we want manual first play
 			});
 
 			// Not ready
 			player.addListener('not_ready', ({ device_id }: any) => {
 				console.log('Device has gone offline:', device_id);
 				deviceId = null;
-				playerState = 'error';
+				// Don't set playerState to 'error' here - just log it
+				// The error will show when user tries to play and it fails
 			});
 
 			// Connect the player
@@ -238,7 +241,6 @@
 
 		try {
 			isTransferring = true;
-			errorMessage = null;
 
 			const response = await fetch('/api/spotify/player/transfer', {
 				method: 'PUT',
@@ -250,13 +252,17 @@
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				throw new Error(errorText);
+				console.error('Transfer failed:', errorText);
+				// Don't set errorMessage here - let the play function handle device errors
+				return false;
 			}
 
 			console.log('Playback transferred successfully');
+			return true;
 		} catch (error) {
 			console.error('Transfer failed:', error);
-			errorMessage = error instanceof Error ? error.message : 'Failed to transfer playback';
+			// Don't set errorMessage here - let the play function handle device errors
+			return false;
 		} finally {
 			isTransferring = false;
 		}
@@ -288,7 +294,7 @@
 		// Add a small delay to ensure Spotify finishes processing the current track
 		await new Promise(resolve => setTimeout(resolve, 200));
 		
-		await startRound(); // Start a new round with a fresh track
+		await startRound(true); // Start a new round with auto-play enabled
 		
 		// Re-focus the input for the next round
 		await tick(); // Wait for DOM update
@@ -298,7 +304,7 @@
 	}
 
 	// Start a new round
-	async function startRound() {
+	async function startRound(autoPlay = false) {
 		if (tracks.length === 0) return;
 
 		// Always pick a fresh track (no preloading to avoid queue issues)
@@ -310,6 +316,7 @@
 		console.log('New track selected:', newTrack.name);
 		console.log('Track URI:', newTrack.uri);
 		console.log('Used tracks count:', usedTracks.size);
+		console.log('Auto-play:', autoPlay);
 
 		// Mark this track as used
 		usedTracks.add(newTrack.id);
@@ -320,21 +327,24 @@
 		suggestions = [];
 		showAnswer = false;
 		canAdvance = false; // Reset advance state
-		errorMessage = null;
+		errorMessage = null; // Clear any previous errors when starting new round
 
-		// Auto-play the new track
-		if (playerState === 'ready' && deviceId) {
+		// Auto-play the new track only if autoPlay is true (subsequent songs)
+		if (autoPlay && playerState === 'ready' && deviceId) {
 			await playFromStart();
 		}
 	}
 
 	// Play current track from start
 	async function playFromStart() {
-		if (!currentTrack || !deviceId) return;
+		if (!currentTrack || !deviceId) {
+			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
+			return;
+		}
 
 		try {
 			isPlaying = true;
-			errorMessage = null;
+			errorMessage = null; // Clear any previous errors
 
 			console.log('=== Starting playback ===');
 			console.log('Track:', currentTrack.name);
@@ -355,13 +365,42 @@
 				body: JSON.stringify(payload)
 			});
 
-			if (!response.ok) {
+			// If we get a 404 (no active device), try to transfer playback first and retry
+			if (response.status === 404) {
+				console.log('Device not active, attempting transfer...');
+				const transferSuccessful = await transferPlayback();
+				if (transferSuccessful) {
+					// Wait a moment for transfer to complete, then retry
+					await new Promise(resolve => setTimeout(resolve, 500));
+					
+					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+					
+					if (!retryResponse.ok) {
+						const errorText = await retryResponse.text();
+						throw new Error(errorText);
+					}
+				} else {
+					throw new Error('No active device found - please ensure Spotify is open and try again.');
+				}
+			} else if (!response.ok) {
 				const errorText = await response.text();
 				console.error('Play API response error:', response.status, errorText);
 				throw new Error(errorText);
 			}
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
+			
+			// Mark that first song has been played for this artist
+			if (isFirstSongForArtist) {
+				hasPlayedFirstSong = true;
+				isFirstSongForArtist = false;
+			}
 		} catch (error) {
 			console.error('❌ Play failed:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to play track';
@@ -469,7 +508,7 @@
 	// Auto-start first round when player is ready
 	$effect(() => {
 		if (playerState === 'ready' && !currentTrack && tracks.length > 0) {
-			startRound();
+			startRound(false); // Don't auto-play the first song
 		}
 	});
 
@@ -477,6 +516,9 @@
 	$effect(() => {
 		if (tracks.length > 0 && playerState === 'idle') {
 			retryCount = 0;
+			// Reset first song state when tracks change (new artist)
+			isFirstSongForArtist = true;
+			hasPlayedFirstSong = false;
 			initializePlayer();
 		}
 	});
@@ -588,10 +630,12 @@
 					>
 						{#if isPlaying}
 							<Loader2 class="h-4 w-4 animate-spin" />
+						{:else if isFirstSongForArtist}
+							<Play class="h-4 w-4" />
 						{:else}
 							<RotateCcw class="h-4 w-4" />
 						{/if}
-						Replay
+						{isFirstSongForArtist ? 'Play' : 'Replay'}
 					</Button>
 				</div>
 
@@ -674,7 +718,7 @@
 			</div>
 		{:else if playerState === 'ready'}
 			<div class="py-8 text-center">
-				<Button onclick={startRound} disabled={tracks.length === 0}>Start Guessing</Button>
+				<Button onclick={() => startRound(false)} disabled={tracks.length === 0}>Start Guessing</Button>
 			</div>
 		{/if}
 
