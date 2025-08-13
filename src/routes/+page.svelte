@@ -64,7 +64,7 @@
 {:else}
 	<!-- Signed-in state: Show welcome message and artist search -->
 	<main class="min-h-[calc(100vh-80px)] p-4">
-		<div class="mx-auto max-w-4xl space-y-8">
+		<div class="mx-auto max-w-4xl space-y-8 mt-8">
 			<!-- Welcome Section -->
 			<div class="text-center">
 				<h2 class="h2 mb-2 text-2xl text-white">

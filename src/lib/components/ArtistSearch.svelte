@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Input } from '$lib/components/ui/input';
-	import { Search, Music, Loader2, Album, ListMusic } from 'lucide-svelte';
+	import { Search, Music, Loader2, Album, ListMusic, ExternalLink } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
 	import type { GameTrack, SearchResult, SearchResultType } from '$lib/types';
+	import { parseSpotifyUrl, isSpotifyUrl } from '$lib/utils/spotifyUrl';
 
 	// Component state
 	let searchQuery = $state('');
@@ -31,6 +32,12 @@
 			return;
 		}
 
+		// If it's a Spotify URL, search immediately without debounce
+		if (isSpotifyUrl(query.trim())) {
+			searchItems(query);
+			return;
+		}
+
 		debounceTimer = setTimeout(async () => {
 			await searchItems(query);
 		}, 300);
@@ -39,6 +46,19 @@
 	// Search for artists, albums, and playlists
 	async function searchItems(query: string) {
 		if (query.trim().length === 0) return;
+
+		// Check if the query is a Spotify URL
+		const urlInfo = parseSpotifyUrl(query);
+		if (urlInfo) {
+			if (urlInfo.type === 'track') {
+				searchError = 'Track URLs are not supported. Please use artist, album, or playlist URLs.';
+				searchResults = [];
+				showDropdown = false;
+				return;
+			}
+			await fetchFromSpotifyUrl(urlInfo.type as SearchResultType, urlInfo.id);
+			return;
+		}
 
 		isSearching = true;
 		searchError = null;
@@ -59,6 +79,38 @@
 			searchError = 'Failed to search. Please try again.';
 			searchResults = [];
 			showDropdown = false;
+		} finally {
+			isSearching = false;
+		}
+	}
+
+	// Fetch item directly from Spotify URL
+	async function fetchFromSpotifyUrl(type: SearchResultType, id: string) {
+		isSearching = true;
+		searchError = null;
+		showDropdown = false;
+
+		try {
+			// Fetch the item metadata
+			const response = await fetch(`/api/spotify/${type}?${type}Id=${encodeURIComponent(id)}`);
+
+			if (!response.ok) {
+				if (response.status === 404) {
+					throw new Error(`${type.charAt(0).toUpperCase() + type.slice(1)} not found`);
+				} else if (response.status === 400) {
+					const errorText = await response.text();
+					throw new Error(errorText || `Invalid ${type}`);
+				}
+				throw new Error(`Failed to fetch ${type}: ${response.statusText}`);
+			}
+
+			const item: SearchResult = await response.json();
+			
+			// Directly proceed to fetch tracks for this item
+			await fetchTracks(item);
+		} catch (error) {
+			console.error('URL fetch error:', error);
+			searchError = error instanceof Error ? error.message : `Failed to fetch ${type} from URL.`;
 		} finally {
 			isSearching = false;
 		}
@@ -142,7 +194,14 @@
 	function handleInput(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		searchQuery = input.value;
-		debounceSearch(searchQuery);
+		
+		// If it's a Spotify URL, don't show dropdown and search immediately
+		if (isSpotifyUrl(searchQuery.trim())) {
+			showDropdown = false;
+			debounceSearch(searchQuery);
+		} else {
+			debounceSearch(searchQuery);
+		}
 	}
 
 	// Get icon for result type
@@ -262,6 +321,13 @@
 				{/each}
 			</div>
 		{/if}
+	</div>
+
+	<!-- Search Note -->
+	<div class="text-xs text-gray-400 flex items-center justify-center gap-2 text-center">
+		<span>
+			Can't find what you're looking for? You can paste a Spotify share link for any artist, album, or playlist.
+		</span>
 	</div>
 
 	<!-- Search Error -->

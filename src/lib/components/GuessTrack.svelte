@@ -60,9 +60,9 @@
 			case 'artist':
 				return `Guess the song by ${displayName()}`;
 			case 'album':
-				return `Guess songs from "${displayName()}"`;
+				return `Guess songs from ${displayName()}`;
 			case 'playlist':
-				return `Guess songs from "${displayName()}"`;
+				return `Guess songs from ${displayName()}`;
 			default:
 				return `Guess the song by ${displayName()}`;
 		}
