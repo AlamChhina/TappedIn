@@ -72,9 +72,43 @@
 		}
 
 		const normalizedQuery = normalizeForSearch(guessInput);
-		suggestions = tracks.filter((track) => 
-			normalizeForSearch(track.name).includes(normalizedQuery)
-		).slice(0, 5); // Limit to 5 suggestions
+		
+		// Score tracks based on how well they match the query
+		const scoredTracks = tracks
+			.map((track) => {
+				const normalizedTrackName = normalizeForSearch(track.name);
+				
+				// Calculate match score (higher is better)
+				let score = 0;
+				
+				// Exact match gets highest score
+				if (normalizedTrackName === normalizedQuery) {
+					score = 1000;
+				}
+				// Starts with query gets high score
+				else if (normalizedTrackName.startsWith(normalizedQuery)) {
+					score = 500;
+				}
+				// Contains query gets medium score
+				else if (normalizedTrackName.includes(normalizedQuery)) {
+					score = 100;
+				}
+				// No match
+				else {
+					return null;
+				}
+				
+				// Bonus points for shorter titles (more likely to be exact matches)
+				score += Math.max(0, 50 - normalizedTrackName.length);
+				
+				return { track, score };
+			})
+			.filter(Boolean) // Remove null entries (no matches)
+			.sort((a, b) => b!.score - a!.score) // Sort by score descending
+			.slice(0, 5) // Limit to 5 suggestions
+			.map(item => item!.track);
+		
+		suggestions = scoredTracks;
 		
 		// Reset selection when suggestions change
 		hoveredSuggestionIndex = null;
