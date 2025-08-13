@@ -122,23 +122,40 @@
 			.map((track) => {
 				const normalizedTrackName = normalizeForSearch(track.name);
 				
-				// Calculate match score (higher is better)
+				// For playlists, also consider artist names in the search
+				let searchTargets = [normalizedTrackName];
+				
+				if (displayType() === 'playlist') {
+					// Add "track artist" combinations
+					searchTargets.push(
+						...track.artistNames.map(artist => 
+							normalizeForSearch(`${track.name} ${artist}`)
+						),
+						// Add combined artist search
+						normalizeForSearch(`${track.name} ${track.artistNames.join(', ')}`)
+					);
+				}
+				
+				// Calculate match score across all search targets (higher is better)
 				let score = 0;
 				
-				// Exact match gets highest score
-				if (normalizedTrackName === normalizedQuery) {
-					score = 1000;
+				for (const target of searchTargets) {
+					// Exact match gets highest score
+					if (target === normalizedQuery) {
+						score = Math.max(score, 1000);
+					}
+					// Starts with query gets high score
+					else if (target.startsWith(normalizedQuery)) {
+						score = Math.max(score, 500);
+					}
+					// Contains query gets medium score
+					else if (target.includes(normalizedQuery)) {
+						score = Math.max(score, 100);
+					}
 				}
-				// Starts with query gets high score
-				else if (normalizedTrackName.startsWith(normalizedQuery)) {
-					score = 500;
-				}
-				// Contains query gets medium score
-				else if (normalizedTrackName.includes(normalizedQuery)) {
-					score = 100;
-				}
-				// No match
-				else {
+				
+				// No match found
+				if (score === 0) {
 					return null;
 				}
 				
@@ -500,7 +517,30 @@
 		const normalizedGuess = normalizeTitle(guessInput.trim());
 		const normalizedTitle = normalizeTitle(currentTrack.name);
 
-		if (normalizedGuess === normalizedTitle) {
+		// For playlists, we need to check both title and artist match
+		// For albums and artists, just check the title (since artist is implied)
+		let isCorrect = false;
+
+		if (displayType() === 'playlist') {
+			// For playlists, check if the guess matches any combination of "title artist"
+			const possibleAnswers = [
+				// Just the title
+				normalizedTitle,
+				// Title with any of the artists
+				...currentTrack.artistNames.map(artist => 
+					normalizeTitle(`${currentTrack!.name} ${artist}`)
+				),
+				// All artists combined
+				normalizeTitle(`${currentTrack.name} ${currentTrack.artistNames.join(', ')}`)
+			];
+
+			isCorrect = possibleAnswers.some(answer => normalizedGuess === answer);
+		} else {
+			// For artist and album types, just check the title
+			isCorrect = normalizedGuess === normalizedTitle;
+		}
+
+		if (isCorrect) {
 			guessStatus = 'correct';
 			showAnswer = true;
 			streak += 1; // Increment streak on correct guess
@@ -749,7 +789,12 @@
 									onmouseleave={() => (hoveredSuggestionIndex = null)}
 									onclick={() => selectSuggestion(suggestion)}
 								>
-									{suggestion.name}
+									<div class="flex flex-col">
+										<span class="font-medium">{suggestion.name}</span>
+										{#if displayType() === 'playlist'}
+											<span class="text-xs text-gray-400 mt-0.5">{suggestion.artistNames.join(', ')}</span>
+										{/if}
+									</div>
 								</button>
 							{/each}
 						</div>
