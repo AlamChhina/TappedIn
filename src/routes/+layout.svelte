@@ -45,15 +45,16 @@
 <div class="min-h-screen" style="background-color: #121212;">
 	<!-- Top Header Bar -->
 	<header class="flex items-center justify-between border-b p-4" style="border-color: #282828;">
-		<!-- App Title and Navigation -->
-		<div class="flex items-center gap-6">
-			<div class="flex items-center">
-				<h1 class="app-title text-xl text-white">Tapped In</h1>
-				<div class="p-2">
-					<img src="/logo.svg" alt="Logo" class="h-8 w-8" />
-				</div>
+		<!-- App Title -->
+		<div class="flex items-center">
+			<h1 class="app-title text-xl text-white">Tapped In</h1>
+			<div class="p-2">
+				<img src="/logo.svg" alt="Logo" class="h-8 w-8" />
 			</div>
+		</div>
 
+		<!-- Right side: Game Mode Navigation and User Avatar -->
+		<div class="flex items-center gap-4">
 			<!-- Game Mode Navigation (only show when logged in) -->
 			{#if session.loggedIn}
 				<nav class="flex items-center gap-2">
@@ -81,9 +82,8 @@
 					</a>
 				</nav>
 			{/if}
-		</div>
 
-		<!-- User Avatar (if signed in) -->
+			<!-- User Avatar (if signed in) -->
 		{#if session.loggedIn && profile}
 			<DropdownMenu>
 				<DropdownMenuTrigger

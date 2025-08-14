@@ -21,7 +21,7 @@
 </script>
 
 <svelte:head>
-	<title>Zen Mode - Tapped In</title>
+	<title>Tapped In - Zen</title>
 	<meta
 		name="description"
 		content="Relax and enjoy music with Zen mode - full songs play while you guess at your own pace."
