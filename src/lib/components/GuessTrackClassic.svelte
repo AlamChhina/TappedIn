@@ -727,16 +727,17 @@
 			// Reset tries for next round when incorrect
 			triesUsed = 0;
 			currentPlayDuration = 1;
-			// Start playing the full song after incorrect guess
-			setTimeout(() => {
-				if (guessStatus === 'incorrect') {
-					playFullSong();
-				}
-			}, 100);
 		}
 
 		// Clear the selected track from dropdown for next guess
 		selectedTrackFromDropdown = null;
+
+		// Start playing the full song after any guess
+		setTimeout(() => {
+			if (guessStatus === 'correct' || guessStatus === 'incorrect') {
+				playFullSong();
+			}
+		}, 100);
 
 		// Allow advancing to next song after a very short delay
 		setTimeout(() => {
@@ -980,35 +981,22 @@
 		{#if currentTrack}
 			<div class="mb-6">
 			<div class="mb-4 flex items-center gap-4">
-				<Button
-					onclick={playFromStart}
-					disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
-					class="flex items-center gap-2"
-				>
-					{#if isPlaying}
-						<Loader2 class="h-4 w-4 animate-spin" />
-					{:else if isFirstSongForArtist}
-						<Play class="h-4 w-4" />
-					{:else}
-						<RotateCcw class="h-4 w-4" />
-					{/if}
-					{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
-				</Button>
-
-				<!-- Show +1 sec button if not first song, not showing answer, and not at max tries -->
-				{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries}
+				{#if showAnswer && isPlayingFullSong}
+					<!-- When playing full song after guess, show full song replay button -->
 					<Button
-						onclick={addMoreTime}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
+						onclick={playFullSong}
+						disabled={playerState !== 'ready' || !deviceId || isPlaying}
 						class="flex items-center gap-2"
 					>
-						<Plus class="h-4 w-4" />
-						+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
+						{#if isPlaying}
+							<Loader2 class="h-4 w-4 animate-spin" />
+						{:else}
+							<RotateCcw class="h-4 w-4" />
+						{/if}
+						Replay
 					</Button>
-				{/if}
 
-				<!-- Show pause/resume buttons when playing full song after incorrect guess -->
-				{#if guessStatus === 'incorrect' && showAnswer && isPlayingFullSong}
+					<!-- Pause/Resume buttons when playing full song -->
 					{#if isPaused}
 						<Button
 							onclick={resumeTrack}
@@ -1026,6 +1014,34 @@
 						>
 							<Pause class="h-4 w-4" />
 							Pause
+						</Button>
+					{/if}
+				{:else}
+					<!-- When not showing answer or not playing full song, show timed replay button -->
+					<Button
+						onclick={playFromStart}
+						disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
+						class="flex items-center gap-2"
+					>
+						{#if isPlaying}
+							<Loader2 class="h-4 w-4 animate-spin" />
+						{:else if isFirstSongForArtist}
+							<Play class="h-4 w-4" />
+						{:else}
+							<RotateCcw class="h-4 w-4" />
+						{/if}
+						{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
+					</Button>
+
+					<!-- Show +X sec button if not first song, not showing answer, and not at max tries -->
+					{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries}
+						<Button
+							onclick={addMoreTime}
+							disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
+							class="flex items-center gap-2"
+						>
+							<Plus class="h-4 w-4" />
+							+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
 						</Button>
 					{/if}
 				{/if}
