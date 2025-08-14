@@ -466,7 +466,7 @@
 		isPaused = false; // Reset pause state
 		errorMessage = null; // Clear any previous errors when starting new round
 		
-		// Reset Classic mode specific states
+		// Reset Classic mode specific states for new round
 		currentPlayDuration = 1;
 		triesUsed = 0;
 		isPlayingFullSong = false;
@@ -724,9 +724,6 @@
 			guessStatus = 'incorrect';
 			showAnswer = true; // Show answer on incorrect guess too
 			streak = 0; // Reset streak on incorrect guess
-			// Reset tries for next round when incorrect
-			triesUsed = 0;
-			currentPlayDuration = 1;
 		}
 
 		// Clear the selected track from dropdown for next guess
