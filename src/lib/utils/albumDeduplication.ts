@@ -71,7 +71,7 @@ function generateAlbumKey(album: SpotifyAlbumObjectSimplified): string {
 	const normalizedName = album.name.toLowerCase().trim();
 	const sortedArtistIds = album.artists
 		.map((artist) => artist.id)
-		.sort()
+		.sort((a, b) => a.localeCompare(b))
 		.join(',');
 	const year = album.release_date ? album.release_date.substring(0, 4) : '';
 
@@ -167,7 +167,7 @@ function selectBestAlbum(
 ): SpotifyAlbumObjectFull {
 	if (fullAlbums.length === 1) return fullAlbums[0];
 
-	return fullAlbums.sort((a, b) => {
+	const sortedAlbums = fullAlbums.toSorted((a, b) => {
 		// 1. Explicit track count (higher is better)
 		const aExplicitScore = scoreAlbumByExplicitness(a);
 		const bExplicitScore = scoreAlbumByExplicitness(b);
@@ -194,7 +194,9 @@ function selectBestAlbum(
 
 		// 4. Stable fallback: lexicographic ID
 		return a.id.localeCompare(b.id);
-	})[0];
+	});
+
+	return sortedAlbums[0];
 }
 
 /**
@@ -213,7 +215,7 @@ export function collapseExactDuplicatesFast(
 			result.push(group[0]);
 		} else {
 			// Simple selection based on available data
-			const best = group.sort((a, b) => {
+			const sortedGroup = group.toSorted((a, b) => {
 				// Prefer albums available in target market
 				if (opts.market) {
 					const aAvailable = a.available_markets?.includes(opts.market) ?? true;
@@ -233,9 +235,9 @@ export function collapseExactDuplicatesFast(
 
 				// Stable fallback
 				return a.id.localeCompare(b.id);
-			})[0];
+			});
 
-			result.push(best);
+			result.push(sortedGroup[0]);
 		}
 	}
 
