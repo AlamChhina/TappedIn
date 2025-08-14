@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-	<title>Guess the Song - A Daily Music Game</title>
+	<title>Tapped In</title>
 	<meta
 		name="description"
 		content="Connect your Spotify account and test your music knowledge with song guessing challenges."

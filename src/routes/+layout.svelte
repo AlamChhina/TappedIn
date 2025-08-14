@@ -44,11 +44,12 @@
 	<!-- Top Header Bar -->
 	<header class="flex items-center justify-between border-b p-4" style="border-color: #282828;">
 		<!-- App Title -->
-		<div class="flex items-center gap-3">
-			<div class="rounded-lg p-2" style="background-color: #1DB954;">
-				<Music class="h-5 w-5 text-white" aria-hidden="true" />
+		<div class="flex items-center">
+			
+			<h1 class="app-title text-xl text-white">Tapped In</h1>
+			<div class="p-2">
+				<img src="/logo.svg" alt="Logo" class="h-8 w-8" />
 			</div>
-			<h1 class="app-title text-xl text-white">Guess the Song</h1>
 		</div>
 
 		<!-- User Avatar (if signed in) -->
