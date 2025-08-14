@@ -901,17 +901,6 @@
 			</div>
 		</div>
 
-		<!-- Tries Indicator -->
-		<div class="mb-4 flex items-center justify-center gap-2">
-			{#each Array(maxTries) as _, index}
-				<div
-					class="h-3 w-3 rounded-full border-2 {index <= triesUsed
-						? 'bg-red-500 border-red-500'
-						: 'bg-green-500 border-green-500'}"
-				></div>
-			{/each}
-		</div>
-
 		<!-- Player Status -->
 		<div class="mb-6">
 			{#if playerState === 'idle'}
@@ -934,12 +923,24 @@
 					>
 				</div>
 			{:else if playerState === 'ready'}
-				<div class="text-spotify-green flex items-center gap-2">
-					<CheckCircle class="h-4 w-4" />
-					<span>Player connected</span>
-					{#if isTransferring}
-						<span class="text-gray-400">(transferring...)</span>
-					{/if}
+				<div class="flex items-center justify-between">
+					<div class="text-spotify-green flex items-center gap-2">
+						<CheckCircle class="h-4 w-4" />
+						<span>Player connected</span>
+						{#if isTransferring}
+							<span class="text-gray-400">(transferring...)</span>
+						{/if}
+					</div>
+					<!-- Tries Indicator -->
+					<div class="flex items-center gap-2">
+						{#each Array(maxTries) as _, index}
+							<div
+								class="h-3 w-3 rounded-full border-2 {index <= triesUsed
+									? 'bg-red-500 border-red-500'
+									: 'bg-green-500 border-green-500'}"
+							></div>
+						{/each}
+					</div>
 				</div>
 			{:else if playerState === 'error'}
 				<div class="flex items-center gap-4 text-red-400">
@@ -1000,7 +1001,6 @@
 						onclick={addMoreTime}
 						disabled={playerState !== 'ready' || !deviceId || isPlaying}
 						class="flex items-center gap-2"
-						variant="outline"
 					>
 						<Plus class="h-4 w-4" />
 						+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
@@ -1014,7 +1014,6 @@
 							onclick={resumeTrack}
 							disabled={playerState !== 'ready' || !deviceId}
 							class="flex items-center gap-2"
-							variant="outline"
 						>
 							<Play class="h-4 w-4" />
 							Resume
@@ -1024,7 +1023,6 @@
 							onclick={pauseTrack}
 							disabled={playerState !== 'ready' || !deviceId}
 							class="flex items-center gap-2"
-							variant="outline"
 						>
 							<Pause class="h-4 w-4" />
 							Pause
