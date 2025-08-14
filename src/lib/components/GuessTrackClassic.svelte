@@ -123,8 +123,8 @@
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
 	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
 	let currentPlayDuration = $state(1); // Current play duration in seconds (1, 2, 4, 7, 11)
-	let triesUsed = $state(0); // Number of tries used (0-4, where 0 means initial 1 second)
-	let maxTries = 5; // Maximum number of tries allowed
+	let triesUsed = $state(0); // Number of tries used (0-3, where 0 means initial 1 second)
+	let maxTries = 4; // Maximum number of tries allowed
 	let isPlayingFullSong = $state(false); // Track if playing full song after incorrect guess
 
 	// Calculate the durations for each try (1, 2, 4, 7, 11 seconds)
@@ -640,12 +640,12 @@
 
 	// Add more time to the current track (Classic mode feature)
 	async function addMoreTime() {
-		if (triesUsed >= maxTries - 1) return; // Already at max tries
+		if (triesUsed >= maxTries) return; // Already at max tries
 
 		triesUsed += 1;
 		currentPlayDuration = getCurrentDuration();
 		
-		console.log(`Adding more time: ${currentPlayDuration} seconds (try ${triesUsed + 1}/${maxTries})`);
+		console.log(`Adding more time: ${currentPlayDuration} seconds (try ${triesUsed + 1}/${maxTries + 1})`);
 		
 		// Replay the track with the new duration
 		await playFromStart();
@@ -935,7 +935,7 @@
 					<div class="flex items-center gap-2">
 						{#each Array(maxTries) as _, index}
 							<div
-								class="h-3 w-3 rounded-full border-2 {index <= triesUsed
+								class="h-3 w-3 rounded-full border-2 {index < triesUsed
 									? 'bg-red-500 border-red-500'
 									: 'bg-green-500 border-green-500'}"
 							></div>
@@ -996,7 +996,7 @@
 				</Button>
 
 				<!-- Show +1 sec button if not first song, not showing answer, and not at max tries -->
-				{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries - 1}
+				{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries}
 					<Button
 						onclick={addMoreTime}
 						disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
