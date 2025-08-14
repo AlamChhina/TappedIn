@@ -105,7 +105,7 @@
 			}
 
 			const item: SearchResult = await response.json();
-			
+
 			// Directly proceed to fetch tracks for this item
 			await fetchTracks(item);
 		} catch (error) {
@@ -129,13 +129,17 @@
 
 		try {
 			let response;
-			
+
 			if (type === 'artist') {
-				response = await fetch(`/api/spotify/artist-tracks?artistId=${encodeURIComponent(item.id)}`);
+				response = await fetch(
+					`/api/spotify/artist-tracks?artistId=${encodeURIComponent(item.id)}`
+				);
 			} else if (type === 'album') {
 				response = await fetch(`/api/spotify/album-tracks?albumId=${encodeURIComponent(item.id)}`);
 			} else if (type === 'playlist') {
-				response = await fetch(`/api/spotify/playlist-tracks?playlistId=${encodeURIComponent(item.id)}`);
+				response = await fetch(
+					`/api/spotify/playlist-tracks?playlistId=${encodeURIComponent(item.id)}`
+				);
 			} else {
 				throw new Error('Unknown item type');
 			}
@@ -194,7 +198,7 @@
 	function handleInput(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		searchQuery = input.value;
-		
+
 		// If it's a Spotify URL, don't show dropdown and search immediately
 		if (isSpotifyUrl(searchQuery.trim())) {
 			showDropdown = false;
@@ -207,18 +211,24 @@
 	// Get icon for result type
 	function getTypeIcon(type: SearchResultType) {
 		switch (type) {
-			case 'artist': return Music;
-			case 'album': return Album;
-			case 'playlist': return ListMusic;
+			case 'artist':
+				return Music;
+			case 'album':
+				return Album;
+			case 'playlist':
+				return ListMusic;
 		}
 	}
 
 	// Get display name for result type
 	function getTypeName(type: SearchResultType) {
 		switch (type) {
-			case 'artist': return 'Artist';
-			case 'album': return 'Album';
-			case 'playlist': return 'Playlist';
+			case 'artist':
+				return 'Artist';
+			case 'album':
+				return 'Album';
+			case 'playlist':
+				return 'Playlist';
 		}
 	}
 
@@ -267,7 +277,7 @@
 				bind:ref={searchInputRef}
 				bind:value={searchQuery}
 				placeholder="Search for artists, albums, or playlists..."
-				class="pr-10 pl-10 text-white placeholder:text-gray-400 border-[#282828] bg-[#282828] focus-visible:ring-2 focus-visible:ring-spotify-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] focus:border-spotify-green"
+				class="focus-visible:ring-spotify-green focus:border-spotify-green border-[#282828] bg-[#282828] pr-10 pl-10 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
 				onInput={handleInput}
 				onKeydown={handleKeydown}
 				onFocus={() => {
@@ -306,17 +316,22 @@
 								class="h-10 w-10 object-cover {type === 'artist' ? 'rounded-full' : 'rounded-sm'}"
 							/>
 						{:else}
-							<div class="flex h-10 w-10 items-center justify-center {type === 'artist' ? 'rounded-full' : 'rounded-sm'}" style="background-color: #282828;">
+							<div
+								class="flex h-10 w-10 items-center justify-center {type === 'artist'
+									? 'rounded-full'
+									: 'rounded-sm'}"
+								style="background-color: #282828;"
+							>
 								<Icon class="h-5 w-5 text-gray-400" />
 							</div>
 						{/if}
 						<div class="flex flex-1 flex-col items-start">
-							<span class="text-left text-white font-medium">{item.name}</span>
+							<span class="text-left font-medium text-white">{item.name}</span>
 							{#if subtitle}
 								<span class="text-xs text-gray-400">{subtitle}</span>
 							{/if}
 						</div>
-						<span class="text-xs text-gray-400 font-medium">{getTypeName(type)}</span>
+						<span class="text-xs font-medium text-gray-400">{getTypeName(type)}</span>
 					</button>
 				{/each}
 			</div>
@@ -324,9 +339,10 @@
 	</div>
 
 	<!-- Search Note -->
-	<div class="text-xs text-gray-400 flex items-center justify-center gap-2 text-center">
+	<div class="flex items-center justify-center gap-2 text-center text-xs text-gray-400">
 		<span>
-			Can't find what you're looking for? You can paste a Spotify share link for any artist, album, or playlist.
+			Can't find what you're looking for? You can paste a Spotify share link for any artist, album,
+			or playlist.
 		</span>
 	</div>
 
@@ -362,9 +378,7 @@
 		<div class="p-8 text-center text-gray-400">
 			<Music class="mx-auto mb-4 h-12 w-12 opacity-50" />
 			<p>No tracks found for {selectedItem.name} that meet the criteria.</p>
-			<p class="mt-2 text-sm">
-				Looking for tracks over 30 seconds that can be played in the game.
-			</p>
+			<p class="mt-2 text-sm">Looking for tracks over 30 seconds that can be played in the game.</p>
 		</div>
 	{/if}
 </div>

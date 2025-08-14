@@ -1,28 +1,46 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { tick } from 'svelte';
-	import { Play, RotateCcw, CheckCircle, XCircle, Loader2, AlertCircle, Flame, Music } from 'lucide-svelte';
+	import {
+		Play,
+		RotateCcw,
+		CheckCircle,
+		XCircle,
+		Loader2,
+		AlertCircle,
+		Flame,
+		Music
+	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { normalizeTitle } from '$lib/utils/normalizeTitle';
 	import { pickRandom } from '$lib/utils/random';
-	import type { GameTrack, PlayerState, GuessStatus, Artist, SearchResult, SearchResultType } from '$lib/types';
+	import type {
+		GameTrack,
+		PlayerState,
+		GuessStatus,
+		Artist,
+		SearchResult,
+		SearchResultType
+	} from '$lib/types';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
-		return text
-			.toLowerCase()
-			// Normalize Unicode characters and remove diacritics (accents)
-			.normalize('NFD')
-			.replace(/[\u0300-\u036f]/g, '')
-			// Replace common variations to be more forgiving
-			.replace(/&/g, 'and') // Convert & to "and"
-			.replace(/\b(feat|ft)\.?\s/gi, '') // Remove "feat." or "ft." 
-			// Remove all punctuation and special characters, keep only letters, numbers, and spaces
-			.replace(/[^\w\s]/g, '')
-			// Collapse multiple spaces into single spaces
-			.replace(/\s+/g, ' ')
-			.trim();
+		return (
+			text
+				.toLowerCase()
+				// Normalize Unicode characters and remove diacritics (accents)
+				.normalize('NFD')
+				.replace(/[\u0300-\u036f]/g, '')
+				// Replace common variations to be more forgiving
+				.replace(/&/g, 'and') // Convert & to "and"
+				.replace(/\b(feat|ft)\.?\s/gi, '') // Remove "feat." or "ft."
+				// Remove all punctuation and special characters, keep only letters, numbers, and spaces
+				.replace(/[^\w\s]/g, '')
+				// Collapse multiple spaces into single spaces
+				.replace(/\s+/g, ' ')
+				.trim()
+		);
 	}
 
 	// Props
@@ -116,21 +134,19 @@
 		}
 
 		const normalizedQuery = normalizeForSearch(guessInput);
-		
+
 		// Score tracks based on how well they match the query
 		const scoredTracks = tracks
 			.map((track) => {
 				const normalizedTrackName = normalizeForSearch(track.name);
-				
+
 				// For playlists, also consider artist names in the search
 				let searchTargets: string[] = [];
-				
+
 				if (displayType() === 'playlist') {
 					// For playlists, only include "track artist" combinations (not just track name)
 					searchTargets = [
-						...track.artistNames.map(artist => 
-							normalizeForSearch(`${track.name} ${artist}`)
-						),
+						...track.artistNames.map((artist) => normalizeForSearch(`${track.name} ${artist}`)),
 						// Add combined artist search
 						normalizeForSearch(`${track.name} ${track.artistNames.join(', ')}`)
 					];
@@ -138,10 +154,10 @@
 					// For artists and albums, just the track name is sufficient
 					searchTargets = [normalizedTrackName];
 				}
-				
+
 				// Calculate match score across all search targets (higher is better)
 				let score = 0;
-				
+
 				for (const target of searchTargets) {
 					// Exact match gets highest score
 					if (target === normalizedQuery) {
@@ -156,24 +172,24 @@
 						score = Math.max(score, 100);
 					}
 				}
-				
+
 				// No match found
 				if (score === 0) {
 					return null;
 				}
-				
+
 				// Bonus points for shorter titles (more likely to be exact matches)
 				score += Math.max(0, 50 - normalizedTrackName.length);
-				
+
 				return { track, score };
 			})
 			.filter(Boolean) // Remove null entries (no matches)
 			.sort((a, b) => b!.score - a!.score) // Sort by score descending
 			.slice(0, 5) // Limit to 5 suggestions
-			.map(item => item!.track);
-		
+			.map((item) => item!.track);
+
 		suggestions = scoredTracks;
-		
+
 		// Reset selection when suggestions change
 		hoveredSuggestionIndex = null;
 		selectedSuggestionIndex = 0;
@@ -258,7 +274,7 @@
 			console.log('SDK loaded, creating player...');
 
 			// Add a small delay to ensure SDK is fully ready
-			await new Promise(resolve => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 500));
 
 			player = new window.Spotify.Player({
 				name: 'Guess the Song Game',
@@ -319,7 +335,7 @@
 			console.error('Player initialization failed:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to initialize player';
 			playerState = 'error';
-			
+
 			// Auto-retry after a short delay if this is the first attempt (max 2 retries)
 			if (retryCount < 2) {
 				retryCount += 1;
@@ -368,17 +384,17 @@
 
 	// Pick a random unused track
 	function pickUnusedTrack(): GameTrack | null {
-		const availableTracks = tracks.filter(track => !usedTracks.has(track.id));
-		
+		const availableTracks = tracks.filter((track) => !usedTracks.has(track.id));
+
 		console.log('Available tracks:', availableTracks.length, 'out of', tracks.length);
-		
+
 		// If all tracks have been used, reset the used tracks set
 		if (availableTracks.length === 0) {
 			console.log('All tracks used, resetting...');
 			usedTracks.clear();
 			return pickRandom(tracks);
 		}
-		
+
 		const selectedTrack = pickRandom(availableTracks);
 		console.log('Selected track from available:', selectedTrack?.name);
 		return selectedTrack;
@@ -388,12 +404,12 @@
 	async function skipToNext() {
 		// Reset advance state
 		canAdvance = false;
-		
+
 		// Add a small delay to ensure Spotify finishes processing the current track
-		await new Promise(resolve => setTimeout(resolve, 200));
-		
+		await new Promise((resolve) => setTimeout(resolve, 200));
+
 		await startRound(true); // Start a new round with auto-play enabled
-		
+
 		// Re-focus the input for the next round (only if it's not the first song)
 		await tick(); // Wait for DOM update
 		if (guessInputElement && !showAnswer && !isFirstSongForArtist) {
@@ -418,7 +434,7 @@
 
 		// Mark this track as used
 		usedTracks.add(newTrack.id);
-		
+
 		currentTrack = newTrack;
 		guessStatus = 'idle';
 		guessInput = '';
@@ -469,8 +485,8 @@
 				const transferSuccessful = await transferPlayback();
 				if (transferSuccessful) {
 					// Wait a moment for transfer to complete, then retry
-					await new Promise(resolve => setTimeout(resolve, 500));
-					
+					await new Promise((resolve) => setTimeout(resolve, 500));
+
 					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
 						method: 'PUT',
 						headers: {
@@ -478,7 +494,7 @@
 						},
 						body: JSON.stringify(payload)
 					});
-					
+
 					if (!retryResponse.ok) {
 						const errorText = await retryResponse.text();
 						throw new Error(errorText);
@@ -493,7 +509,7 @@
 			}
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
-			
+
 			// Mark that first song has been played for this artist and focus input
 			if (isFirstSongForArtist) {
 				hasPlayedFirstSong = true;
@@ -529,14 +545,14 @@
 			// Check if the guess matches "title artist" combinations
 			const possibleAnswers = [
 				// Title with any of the artists
-				...currentTrack.artistNames.map(artist => 
+				...currentTrack.artistNames.map((artist) =>
 					normalizeTitle(`${currentTrack!.name} ${artist}`)
 				),
 				// All artists combined
 				normalizeTitle(`${currentTrack.name} ${currentTrack.artistNames.join(', ')}`)
 			];
 
-			isCorrect = possibleAnswers.some(answer => normalizedGuess === answer);
+			isCorrect = possibleAnswers.some((answer) => normalizedGuess === answer);
 		} else {
 			// For artist and album types, just check the title (since artist is implied)
 			isCorrect = normalizedGuess === normalizedTitle;
@@ -562,16 +578,17 @@
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			
+
 			// If answer is shown and we can advance, go to next song
 			if (showAnswer && canAdvance) {
 				skipToNext();
 				return;
 			}
-			
+
 			// If there are suggestions and answer not shown, select the highlighted one
 			if (suggestions.length > 0 && !showAnswer) {
-				const indexToSelect = hoveredSuggestionIndex !== null ? hoveredSuggestionIndex : selectedSuggestionIndex;
+				const indexToSelect =
+					hoveredSuggestionIndex !== null ? hoveredSuggestionIndex : selectedSuggestionIndex;
 				selectSuggestion(suggestions[indexToSelect]);
 			}
 			// Do nothing if no suggestions or answer already shown (but can't advance yet)
@@ -584,7 +601,8 @@
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
 			if (suggestions.length > 0) {
-				selectedSuggestionIndex = selectedSuggestionIndex === 0 ? suggestions.length - 1 : selectedSuggestionIndex - 1;
+				selectedSuggestionIndex =
+					selectedSuggestionIndex === 0 ? suggestions.length - 1 : selectedSuggestionIndex - 1;
 				hoveredSuggestionIndex = null; // Clear mouse hover when using keyboard
 			}
 		}
@@ -609,10 +627,10 @@
 	onMount(() => {
 		// Add global keydown listener
 		document.addEventListener('keydown', handleGlobalKeydown);
-		
+
 		// Reset retry count when component mounts
 		retryCount = 0;
-		
+
 		// Delay initialization slightly to ensure DOM is ready
 		setTimeout(() => {
 			if (tracks.length > 0) {
@@ -626,7 +644,7 @@
 		if (player) {
 			player.disconnect();
 		}
-		
+
 		// Remove global keydown listener
 		document.removeEventListener('keydown', handleGlobalKeydown);
 	});
@@ -660,7 +678,10 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
-	<div class="rounded-lg border p-6" style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);">
+	<div
+		class="rounded-lg border p-6"
+		style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);"
+	>
 		<div class="mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<!-- Item Image -->
@@ -668,22 +689,32 @@
 					<img
 						src={displayImage()}
 						alt={displayName()}
-						class="h-12 w-12 object-cover border-2 {displayType() === 'artist' ? 'rounded-full' : 'rounded-sm'}"
+						class="h-12 w-12 border-2 object-cover {displayType() === 'artist'
+							? 'rounded-full'
+							: 'rounded-sm'}"
 						style="border-color: #282828;"
 					/>
 				{:else}
-					<div class="flex h-12 w-12 items-center justify-center border-2 {displayType() === 'artist' ? 'rounded-full' : 'rounded-sm'}" style="background-color: #282828; border-color: #181818;">
+					<div
+						class="flex h-12 w-12 items-center justify-center border-2 {displayType() === 'artist'
+							? 'rounded-full'
+							: 'rounded-sm'}"
+						style="background-color: #282828; border-color: #181818;"
+					>
 						<Music class="h-6 w-6 text-gray-400" />
 					</div>
 				{/if}
-				
+
 				<h3 class="text-xl font-semibold text-white">
 					{headerText()}
 				</h3>
 			</div>
-			
+
 			<!-- Streak Counter -->
-			<div class="flex items-center gap-2 rounded-lg px-3 py-1.5" style="background-color: rgba(40, 40, 40, 0.6);">
+			<div
+				class="flex items-center gap-2 rounded-lg px-3 py-1.5"
+				style="background-color: rgba(40, 40, 40, 0.6);"
+			>
 				{#if streak >= 3}
 					<Flame class="h-4 w-4 text-orange-400" />
 				{/if}
@@ -707,10 +738,17 @@
 						<Loader2 class="h-4 w-4 animate-spin" />
 						<span>Connecting to Spotify...</span>
 					</div>
-					<Button onclick={() => { retryCount = 0; initializePlayer(); }} size="sm" variant="outline">Retry Connection</Button>
+					<Button
+						onclick={() => {
+							retryCount = 0;
+							initializePlayer();
+						}}
+						size="sm"
+						variant="outline">Retry Connection</Button
+					>
 				</div>
 			{:else if playerState === 'ready'}
-				<div class="flex items-center gap-2 text-spotify-green">
+				<div class="text-spotify-green flex items-center gap-2">
 					<CheckCircle class="h-4 w-4" />
 					<span>Player connected</span>
 					{#if isTransferring}
@@ -723,7 +761,14 @@
 						<AlertCircle class="h-4 w-4" />
 						<span>Connection failed</span>
 					</div>
-					<Button onclick={() => { retryCount = 0; initializePlayer(); }} size="sm" variant="outline">Retry Connection</Button>
+					<Button
+						onclick={() => {
+							retryCount = 0;
+							initializePlayer();
+						}}
+						size="sm"
+						variant="outline">Retry Connection</Button
+					>
 				</div>
 			{/if}
 		</div>
@@ -770,9 +815,11 @@
 					<input
 						bind:this={guessInputElement}
 						bind:value={guessInput}
-						placeholder={isFirstSongForArtist ? "Press play to start guessing..." : "Enter your guess..."}
+						placeholder={isFirstSongForArtist
+							? 'Press play to start guessing...'
+							: 'Enter your guess...'}
 						disabled={showAnswer || isFirstSongForArtist}
-						class="flex h-10 w-full rounded-md border px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-spotify-green focus:outline-none focus:ring-2 focus:ring-spotify-green disabled:cursor-not-allowed disabled:opacity-50"
+						class="focus:border-spotify-green focus:ring-spotify-green flex h-10 w-full rounded-md border px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 						style="border-color: #282828; background-color: #121212; --tw-ring-offset-color: #121212;"
 						onkeydown={handleKeydown}
 					/>
@@ -786,7 +833,10 @@
 							{#each suggestions as suggestion, index}
 								<button
 									class="w-full px-3 py-2 text-left text-sm text-white"
-									style="background-color: {(hoveredSuggestionIndex === index || (hoveredSuggestionIndex === null && selectedSuggestionIndex === index)) ? '#282828' : 'transparent'};"
+									style="background-color: {hoveredSuggestionIndex === index ||
+									(hoveredSuggestionIndex === null && selectedSuggestionIndex === index)
+										? '#282828'
+										: 'transparent'};"
 									onmouseenter={() => (hoveredSuggestionIndex = index)}
 									onmouseleave={() => (hoveredSuggestionIndex = null)}
 									onclick={() => selectSuggestion(suggestion)}
@@ -794,7 +844,9 @@
 									<div class="flex flex-col">
 										<span class="font-medium">{suggestion.name}</span>
 										{#if displayType() === 'playlist'}
-											<span class="text-xs text-gray-400 mt-0.5">{suggestion.artistNames.join(', ')}</span>
+											<span class="mt-0.5 text-xs text-gray-400"
+												>{suggestion.artistNames.join(', ')}</span
+											>
 										{/if}
 									</div>
 								</button>
@@ -806,7 +858,7 @@
 				<!-- Guess Status -->
 				<div class="mb-4 flex items-center gap-4">
 					{#if guessStatus === 'correct'}
-						<div class="flex items-center gap-2 text-spotify-green">
+						<div class="text-spotify-green flex items-center gap-2">
 							<CheckCircle class="h-5 w-5" />
 							<span>Correct!</span>
 						</div>
@@ -816,7 +868,7 @@
 							<span>Incorrect!</span>
 						</div>
 					{/if}
-				<!-- //mobile button, will add later -->
+					<!-- //mobile button, will add later -->
 					<!-- {#if !showAnswer && guessInput.trim()}
 						<Button onclick={submitGuess} size="sm">Submit Guess</Button>
 					{/if} -->
@@ -826,11 +878,15 @@
 				{#if showAnswer}
 					<div
 						class="mb-4 rounded-md border p-3"
-						style={guessStatus === 'correct' 
-							? 'border-color: #1DB954; background-color: rgba(29, 185, 84, 0.1);' 
+						style={guessStatus === 'correct'
+							? 'border-color: #1DB954; background-color: rgba(29, 185, 84, 0.1);'
 							: 'border-color: rgb(30 64 175); background-color: rgba(30, 64, 175, 0.1);'}
 					>
-						<p class="font-medium {guessStatus === 'correct' ? 'text-spotify-green' : 'text-blue-400'}">
+						<p
+							class="font-medium {guessStatus === 'correct'
+								? 'text-spotify-green'
+								: 'text-blue-400'}"
+						>
 							"{currentTrack.name}" by {currentTrack.artistNames.join(', ')}
 						</p>
 					</div>
@@ -838,9 +894,9 @@
 
 				<!-- Next Button -->
 				{#if showAnswer}
-					<Button 
-						onclick={skipToNext} 
-						class="w-full {canAdvance ? '' : 'opacity-50 cursor-not-allowed'}"
+					<Button
+						onclick={skipToNext}
+						class="w-full {canAdvance ? '' : 'cursor-not-allowed opacity-50'}"
 						disabled={!canAdvance}
 					>
 						Next Song {canAdvance ? '(Enter)' : ''}
@@ -849,7 +905,9 @@
 			</div>
 		{:else if playerState === 'ready'}
 			<div class="py-8 text-center">
-				<Button onclick={() => startRound(false)} disabled={tracks.length === 0}>Start Guessing</Button>
+				<Button onclick={() => startRound(false)} disabled={tracks.length === 0}
+					>Start Guessing</Button
+				>
 			</div>
 		{/if}
 

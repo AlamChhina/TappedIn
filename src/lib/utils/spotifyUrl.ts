@@ -29,7 +29,7 @@ export function parseSpotifyUrl(url: string): SpotifyUrlInfo | null {
 	// Handle open.spotify.com URLs
 	try {
 		const urlObj = new URL(trimmedUrl);
-		
+
 		if (urlObj.hostname !== 'open.spotify.com') {
 			return null;
 		}

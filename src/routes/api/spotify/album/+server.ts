@@ -40,7 +40,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		const album = await response.json();
 
 		// Filter albums (same logic as search endpoint)
-		if (album.total_tracks <= 1 || (album.album_type !== 'album' && album.album_type !== 'compilation')) {
+		if (
+			album.total_tracks <= 1 ||
+			(album.album_type !== 'album' && album.album_type !== 'compilation')
+		) {
 			throw error(400, 'Album must have more than 1 track and be an album or compilation');
 		}
 

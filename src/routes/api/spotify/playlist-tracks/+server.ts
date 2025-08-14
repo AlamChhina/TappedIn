@@ -16,7 +16,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	try {
 		const allTracks: any[] = [];
-		let nextUrl: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?market=from_token&limit=50&fields=items(track(id,name,uri,artists,duration_ms,popularity)),next`;
+		let nextUrl: string | null =
+			`https://api.spotify.com/v1/playlists/${playlistId}/tracks?market=from_token&limit=50&fields=items(track(id,name,uri,artists,duration_ms,popularity)),next`;
 
 		// Fetch all pages of playlist tracks
 		while (nextUrl) {
@@ -47,14 +48,15 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 		// Filter and format tracks for the game
 		const tracks = allTracks
-			.filter((item: any) => 
-				item.track && 
-				item.track.id && 
-				item.track.duration_ms >= 30000 && // At least 30 seconds
-				item.track.name && 
-				item.track.artists && 
-				item.track.artists.length > 0 &&
-				!item.track.is_local // Exclude local files
+			.filter(
+				(item: any) =>
+					item.track &&
+					item.track.id &&
+					item.track.duration_ms >= 30000 && // At least 30 seconds
+					item.track.name &&
+					item.track.artists &&
+					item.track.artists.length > 0 &&
+					!item.track.is_local // Exclude local files
 			)
 			.map((item: any) => ({
 				id: item.track.id,

@@ -16,7 +16,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	try {
 		const allTracks: any[] = [];
-		let nextUrl: string | null = `https://api.spotify.com/v1/albums/${albumId}/tracks?market=from_token&limit=50`;
+		let nextUrl: string | null =
+			`https://api.spotify.com/v1/albums/${albumId}/tracks?market=from_token&limit=50`;
 
 		// Fetch all pages of album tracks
 		while (nextUrl) {
@@ -62,7 +63,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		);
 
 		if (!tracksResponse.ok) {
-			throw error(tracksResponse.status, `Failed to fetch track details: ${tracksResponse.statusText}`);
+			throw error(
+				tracksResponse.status,
+				`Failed to fetch track details: ${tracksResponse.statusText}`
+			);
 		}
 
 		const tracksData: any = await tracksResponse.json();

@@ -70,7 +70,9 @@
 					{/if}
 				</DropdownMenuTrigger>
 
-				<DropdownMenuContent style="border-color: #282828; background-color: #181818; color: white;">
+				<DropdownMenuContent
+					style="border-color: #282828; background-color: #181818; color: white;"
+				>
 					<DropdownMenuItem
 						class="cursor-pointer focus:text-gray-300"
 						style="background-color: transparent; hover:background-color: #282828; focus:background-color: #282828;"

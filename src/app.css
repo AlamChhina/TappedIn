@@ -5,26 +5,34 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Spotify Typography - Global Font Stack */
-:root, html, body {
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-weight: 400;
-  line-height: 1.5;
+:root,
+html,
+body {
+	font-family:
+		-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, 'Noto Sans',
+		'Liberation Sans', sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+	font-weight: 400;
+	line-height: 1.5;
 }
 
 /* Inherit font family for all elements */
 * {
-  font-family: inherit;
+	font-family: inherit;
 }
 
-h1, .h1,
-h2, .h2,
-h3, .h3,
-button, .btn,
+h1,
+.h1,
+h2,
+.h2,
+h3,
+.h3,
+button,
+.btn,
 .app-title {
-  font-weight: 700;
+	font-weight: 700;
 }
 
 :root {
@@ -143,22 +151,22 @@ button, .btn,
 	}
 	/* Spotify Green Custom Color */
 	.text-spotify-green {
-		color: #1DB954;
+		color: #1db954;
 	}
 	.bg-spotify-green {
-		background-color: #1ED760;
+		background-color: #1ed760;
 	}
 	.border-spotify-green {
-		border-color: #1ED760;
+		border-color: #1ed760;
 	}
 	.ring-spotify-green {
-		--tw-ring-color: #1ED760;
+		--tw-ring-color: #1ed760;
 	}
 	.focus\:border-spotify-green:focus {
-		border-color: #1ED760;
+		border-color: #1ed760;
 	}
 	.focus\:ring-spotify-green:focus {
-		--tw-ring-color: #1ED760;
+		--tw-ring-color: #1ed760;
 	}
 	/* Spotify Color Palette */
 	.bg-spotify-black {

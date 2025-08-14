@@ -25,14 +25,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 					}
 				}
 			),
-			fetch(
-				`https://api.spotify.com/v1/me`,
-				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`
-					}
+			fetch(`https://api.spotify.com/v1/me`, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`
 				}
-			)
+			})
 		]);
 
 		if (playlistResponse.status === 429) {
@@ -44,7 +41,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 		if (!playlistResponse.ok) {
 			const errorText = await playlistResponse.text();
-			console.error('Spotify API error:', playlistResponse.status, playlistResponse.statusText, errorText);
+			console.error(
+				'Spotify API error:',
+				playlistResponse.status,
+				playlistResponse.statusText,
+				errorText
+			);
 			throw error(playlistResponse.status, `Spotify API error: ${playlistResponse.statusText}`);
 		}
 
@@ -65,7 +67,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			images: playlist.images || [],
 			owner: {
 				id: playlist.owner?.id || '',
-				display_name: isUserOwned ? 'You' : (playlist.owner?.display_name || 'Unknown User')
+				display_name: isUserOwned ? 'You' : playlist.owner?.display_name || 'Unknown User'
 			},
 			tracks: {
 				total: playlist.tracks.total

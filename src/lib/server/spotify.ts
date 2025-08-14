@@ -173,7 +173,7 @@ function normalizeTitle(title: string): string {
 	if (!title?.trim()) return '';
 
 	let normalized = title.toLowerCase();
-	
+
 	// Remove common suffixes
 	normalized = normalized
 		.replace(REMASTERED_SUFFIX, '')
@@ -181,16 +181,16 @@ function normalizeTitle(title: string): string {
 		.replace(RADIO_EDIT_SUFFIX, '')
 		.replace(EDIT_SUFFIX, '')
 		.replace(EXTENDED_SUFFIX, '');
-	
+
 	// Remove bracketed content, but preserve if it would empty the string
 	const withoutBrackets = normalized.replace(BRACKETED_CONTENT, '').trim();
 	if (withoutBrackets.length > 0) {
 		normalized = withoutBrackets;
 	}
-	
+
 	// Collapse whitespace and punctuation
 	normalized = normalized.replace(WHITESPACE_PUNCT, ' ').trim();
-	
+
 	return normalized;
 }
 
@@ -201,7 +201,7 @@ function normalizeTitle(title: string): string {
  */
 function shouldExcludeTrack(title: string): boolean {
 	const lowerTitle = title.toLowerCase();
-	
+
 	// Patterns that clearly indicate alternate versions
 	const exclusionPatterns = [
 		// Live performance indicators
@@ -209,26 +209,26 @@ function shouldExcludeTrack(title: string): boolean {
 		/\(live\)/,
 		/-\s*live\s*$/,
 		/-\s*live\s+(at|from|in|version|recording|performance|session)/,
-		
+
 		// Remix indicators
 		/\bremix\b/,
 		/\brmx\b/,
 		/\(remix\)/,
 		/-\s*remix/,
 		/\bremixed\s+(version|by)/,
-		
+
 		// Instrumental indicators
 		/\binstrumental\s+(version|mix|track)/,
 		/\(instrumental\)/,
 		/-\s*instrumental/,
-		
+
 		// Acoustic indicators
 		/\bacoustic\s+(version|mix|track)/,
 		/\(acoustic\)/,
 		/-\s*acoustic/
 	];
-	
-	return exclusionPatterns.some(pattern => pattern.test(lowerTitle));
+
+	return exclusionPatterns.some((pattern) => pattern.test(lowerTitle));
 }
 
 /**
@@ -239,12 +239,14 @@ function simplifyTrack(track: SpotifyTrack, album?: SpotifyAlbum): SimplifiedTra
 		id: track.id,
 		name: track.name,
 		uri: track.uri || `spotify:track:${track.id}`,
-		artists: track.artists.map(artist => ({ id: artist.id, name: artist.name })),
-		album: album ? {
-			id: album.id,
-			name: album.name,
-			album_type: album.album_type
-		} : undefined,
+		artists: track.artists.map((artist) => ({ id: artist.id, name: artist.name })),
+		album: album
+			? {
+					id: album.id,
+					name: album.name,
+					album_type: album.album_type
+				}
+			: undefined,
 		isrc: null, // Will be populated if we fetch extended track info
 		popularity: track.popularity || null
 	};
@@ -252,22 +254,22 @@ function simplifyTrack(track: SpotifyTrack, album?: SpotifyAlbum): SimplifiedTra
 
 /**
  * Filters and de-duplicates a list of tracks for a single primary artist.
- * 
+ *
  * SUMMARY: This function implements a two-stage pipeline for cleaning up artist track lists:
  * 1. EXCLUSION: Removes alternate versions (live performances, remixes, instrumentals, acoustics)
  *    while preserving legitimate song titles that happen to contain these words
  * 2. DEDUPLICATION: Groups tracks by ISRC (preferred) or normalized title, then selects the
  *    best version using popularity, album preference, release date, and title length
- * 
+ *
  * FILTERING RULES:
  * - Excludes tracks with clear alternate version indicators like "- Live at...", "(Remix)", etc.
  * - Preserves song titles like "Live Wire", "Live For", "Remixed Emotions", "Instrumentality"
- * 
+ *
  * DEDUPLICATION STRATEGY:
  * - Primary key: ISRC (International Standard Recording Code) when available
  * - Fallback key: normalized title + primary artist ID
  * - Tie-breaker preferences: popularity → album over single → earlier release → shorter title
- * 
+ *
  * @param tracks Array of tracks to process
  * @param primaryArtistId The ID of the primary artist
  * @returns Filtered and deduplicated tracks suitable for guess-the-song games
@@ -277,30 +279,30 @@ export function sanitizeArtistTracks(
 	primaryArtistId: string
 ): SimplifiedTrack[] {
 	// Step 1: Filter out excluded tracks
-	const filteredTracks = tracks.filter(track => !shouldExcludeTrack(track.name));
-	
+	const filteredTracks = tracks.filter((track) => !shouldExcludeTrack(track.name));
+
 	// Step 2: Group tracks by deduplication key
 	const trackGroups = new Map<string, SimplifiedTrack[]>();
-	
+
 	for (const track of filteredTracks) {
 		// Use ISRC if available, otherwise use normalized title + artist ID
 		const key = track.isrc || `${normalizeTitle(track.name)}::${primaryArtistId}`;
-		
+
 		if (!trackGroups.has(key)) {
 			trackGroups.set(key, []);
 		}
 		trackGroups.get(key)!.push(track);
 	}
-	
+
 	// Step 3: Select best track from each group using tie-breaker rules
 	const dedupedTracks: SimplifiedTrack[] = [];
-	
+
 	for (const group of trackGroups.values()) {
 		if (group.length === 1) {
 			dedupedTracks.push(group[0]);
 			continue;
 		}
-		
+
 		// Sort by preference: popularity desc, album > single, earlier release, shorter title, order
 		group.sort((a, b) => {
 			// 1. Higher popularity
@@ -309,14 +311,14 @@ export function sanitizeArtistTracks(
 			if (aPopularity !== bPopularity) {
 				return bPopularity - aPopularity;
 			}
-			
+
 			// 2. Album track over single
 			const aIsAlbum = a.album?.album_type === 'album';
 			const bIsAlbum = b.album?.album_type === 'album';
 			if (aIsAlbum !== bIsAlbum) {
 				return aIsAlbum ? -1 : 1;
 			}
-			
+
 			// 3. Earlier release date (if available)
 			if (a.album?.release_date && b.album?.release_date) {
 				const dateComparison = a.album.release_date.localeCompare(b.album.release_date);
@@ -324,19 +326,19 @@ export function sanitizeArtistTracks(
 					return dateComparison;
 				}
 			}
-			
+
 			// 4. Shorter title
 			if (a.name.length !== b.name.length) {
 				return a.name.length - b.name.length;
 			}
-			
+
 			// 5. Keep first encountered (stable sort)
 			return 0;
 		});
-		
+
 		dedupedTracks.push(group[0]);
 	}
-	
+
 	return dedupedTracks;
 }
 
@@ -393,7 +395,7 @@ export async function collectPrimaryTracks(
 
 	// 7. Convert to SimplifiedTrack format and create album lookup
 	const trackToAlbumMap = new Map<string, SpotifyAlbum>();
-	
+
 	// Build track-to-album mapping
 	for (let i = 0; i < albums.length; i++) {
 		const album = albums[i];
@@ -402,7 +404,7 @@ export async function collectPrimaryTracks(
 			trackToAlbumMap.set(track.id, album);
 		}
 	}
-	
+
 	const simplifiedTracks = filteredTracks.map((track) => {
 		const album = trackToAlbumMap.get(track.id);
 		return simplifyTrack(track, album);
