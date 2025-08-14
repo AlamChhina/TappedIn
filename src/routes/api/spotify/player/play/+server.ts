@@ -3,21 +3,31 @@ import type { RequestHandler } from './$types';
 
 async function makePlayRequest(
 	deviceId: string,
-	uris: string[],
-	positionMs: number,
-	accessToken: string
+	accessToken: string,
+	uris?: string[],
+	positionMs?: number
 ) {
-	const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+	const url = `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`;
+	const headers = {
+		Authorization: `Bearer ${accessToken}`,
+		'Content-Type': 'application/json'
+	};
+
+	// If no URIs provided, this is a resume request - don't send a body
+	const requestOptions: RequestInit = {
 		method: 'PUT',
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
+		headers
+	};
+
+	// Only add body if we have URIs (play specific track)
+	if (uris && uris.length > 0) {
+		requestOptions.body = JSON.stringify({
 			uris,
-			position_ms: positionMs
-		})
-	});
+			position_ms: positionMs || 0
+		});
+	}
+
+	const response = await fetch(url, requestOptions);
 
 	if (response.status === 404) {
 		throw error(404, 'No active device found');
@@ -40,14 +50,28 @@ export const PUT: RequestHandler = async ({ url, request, cookies }) => {
 
 	try {
 		const deviceId = url.searchParams.get('device_id');
-		const { uris, position_ms = 0 } = await request.json();
 
 		if (!deviceId) {
 			throw error(400, 'Device ID is required');
 		}
 
-		if (!uris || !Array.isArray(uris) || uris.length === 0) {
-			throw error(400, 'URIs are required');
+		// Try to parse request body, but don't require it (for resume requests)
+		let uris: string[] | undefined;
+		let position_ms: number | undefined;
+
+		try {
+			const body = await request.json();
+			uris = body.uris;
+			position_ms = body.position_ms || 0;
+		} catch {
+			// No body or invalid JSON - this is a resume request
+			uris = undefined;
+			position_ms = undefined;
+		}
+
+		// Validate URIs only if they're provided
+		if (uris !== undefined && (!Array.isArray(uris) || uris.length === 0)) {
+			throw error(400, 'URIs must be a non-empty array when provided');
 		}
 
 		let retryCount = 0;
@@ -55,7 +79,7 @@ export const PUT: RequestHandler = async ({ url, request, cookies }) => {
 
 		while (retryCount < maxRetries) {
 			try {
-				await makePlayRequest(deviceId, uris, position_ms, accessToken);
+				await makePlayRequest(deviceId, accessToken, uris, position_ms);
 				return json({ success: true });
 			} catch (err) {
 				if (err && typeof err === 'object' && 'status' in err && err.status === 429) {

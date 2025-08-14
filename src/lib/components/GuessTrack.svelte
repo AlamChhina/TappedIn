@@ -3,6 +3,7 @@
 	import { tick } from 'svelte';
 	import {
 		Play,
+		Pause,
 		RotateCcw,
 		CheckCircle,
 		XCircle,
@@ -111,6 +112,7 @@
 	let selectedSuggestionIndex = $state<number>(0); // Track keyboard selection
 	let isTransferring = $state(false);
 	let isPlaying = $state(false);
+	let isPaused = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let showAnswer = $state(false);
 	let canAdvance = $state(false); // Separate state for when Enter can advance
@@ -450,6 +452,7 @@
 		selectedTrackFromDropdown = null; // Reset dropdown selection
 		showAnswer = false;
 		canAdvance = false; // Reset advance state
+		isPaused = false; // Reset pause state
 		errorMessage = null; // Clear any previous errors when starting new round
 
 		// Auto-play the new track only if autoPlay is true (subsequent songs)
@@ -467,6 +470,7 @@
 
 		try {
 			isPlaying = true;
+			isPaused = false; // Ensure we're not in paused state when playing from start
 			errorMessage = null; // Clear any previous errors
 
 			console.log('=== Starting playback ===');
@@ -535,6 +539,67 @@
 			errorMessage = error instanceof Error ? error.message : 'Failed to play track';
 		} finally {
 			isPlaying = false;
+		}
+	}
+
+	// Pause current track
+	async function pauseTrack() {
+		if (!deviceId) {
+			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
+			return;
+		}
+
+		try {
+			console.log('=== Pausing playback ===');
+			
+			const response = await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
+				method: 'PUT'
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error('Pause API response error:', response.status, errorText);
+				throw new Error(errorText);
+			}
+
+			console.log('✅ Playback paused successfully');
+			isPaused = true;
+		} catch (error) {
+			console.error('❌ Pause failed:', error);
+			errorMessage = error instanceof Error ? error.message : 'Failed to pause track';
+		}
+	}
+
+	// Resume current track
+	async function resumeTrack() {
+		if (!deviceId) {
+			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
+			return;
+		}
+
+		try {
+			console.log('=== Resuming playback ===');
+			
+			// For resume, we call the play endpoint without a body to resume current playback
+			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+				// No body - this tells the endpoint to resume instead of play specific track
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error('Resume API response error:', response.status, errorText);
+				throw new Error(errorText);
+			}
+
+			console.log('✅ Playback resumed successfully');
+			isPaused = false;
+		} catch (error) {
+			console.error('❌ Resume failed:', error);
+			errorMessage = error instanceof Error ? error.message : 'Failed to resume track';
 		}
 	}
 
@@ -815,6 +880,28 @@
 						{/if}
 						{isFirstSongForArtist ? 'Play' : 'Replay'}
 					</Button>
+
+					{#if !isFirstSongForArtist}
+						{#if isPaused}
+							<Button
+								onclick={resumeTrack}
+								disabled={playerState !== 'ready' || !deviceId}
+								class="flex items-center gap-2"
+							>
+								<Play class="h-4 w-4" />
+								Resume
+							</Button>
+						{:else}
+							<Button
+								onclick={pauseTrack}
+								disabled={playerState !== 'ready' || !deviceId}
+								class="flex items-center gap-2"
+							>
+								<Pause class="h-4 w-4" />
+								Pause
+							</Button>
+						{/if}
+					{/if}
 				</div>
 
 				<!-- Guess Input -->
