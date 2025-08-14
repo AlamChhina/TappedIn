@@ -982,7 +982,7 @@
 			<div class="mb-4 flex items-center gap-4">
 				<Button
 					onclick={playFromStart}
-					disabled={playerState !== 'ready' || !deviceId || isPlaying}
+					disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
 					class="flex items-center gap-2"
 				>
 					{#if isPlaying}
@@ -999,7 +999,7 @@
 				{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries - 1}
 					<Button
 						onclick={addMoreTime}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying}
+						disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
 						class="flex items-center gap-2"
 					>
 						<Plus class="h-4 w-4" />
