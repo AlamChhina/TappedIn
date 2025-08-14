@@ -118,6 +118,7 @@
 	let retryCount = $state(0); // Track auto-retry attempts
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
+	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
 
 	// Spotify SDK references
 	let player: any = null;
@@ -130,8 +131,12 @@
 			suggestions = [];
 			hoveredSuggestionIndex = null;
 			selectedSuggestionIndex = 0;
+			selectedTrackFromDropdown = null; // Reset dropdown selection when input changes
 			return;
 		}
+
+		// Reset dropdown selection when user types manually
+		selectedTrackFromDropdown = null;
 
 		const normalizedQuery = normalizeForSearch(guessInput);
 
@@ -140,12 +145,15 @@
 			.map((track) => {
 				const normalizedTrackName = normalizeForSearch(track.name);
 
-				// For playlists, also consider artist names in the search
+				// For playlists, include both song title and "song + artist" combinations in search
+				// to help users find the right song when multiple artists have similar titles
 				let searchTargets: string[] = [];
 
 				if (displayType() === 'playlist') {
-					// For playlists, only include "track artist" combinations (not just track name)
+					// For playlists, include both title-only and "title + artist" combinations
+					// This helps users search even if they type the artist name
 					searchTargets = [
+						normalizedTrackName, // Just the track name
 						...track.artistNames.map((artist) => normalizeForSearch(`${track.name} ${artist}`)),
 						// Add combined artist search
 						normalizeForSearch(`${track.name} ${track.artistNames.join(', ')}`)
@@ -439,6 +447,7 @@
 		guessStatus = 'idle';
 		guessInput = '';
 		suggestions = [];
+		selectedTrackFromDropdown = null; // Reset dropdown selection
 		showAnswer = false;
 		canAdvance = false; // Reset advance state
 		errorMessage = null; // Clear any previous errors when starting new round
@@ -536,25 +545,19 @@
 		const normalizedGuess = normalizeTitle(guessInput.trim());
 		const normalizedTitle = normalizeTitle(currentTrack.name);
 
-		// For playlists, we need to check both title and artist match
-		// For albums and artists, just check the title (since artist is implied)
 		let isCorrect = false;
 
-		if (displayType() === 'playlist') {
-			// For playlists, require both title and artist to be specified
-			// Check if the guess matches "title artist" combinations
-			const possibleAnswers = [
-				// Title with any of the artists
-				...currentTrack.artistNames.map((artist) =>
-					normalizeTitle(`${currentTrack!.name} ${artist}`)
-				),
-				// All artists combined
-				normalizeTitle(`${currentTrack.name} ${currentTrack.artistNames.join(', ')}`)
-			];
-
-			isCorrect = possibleAnswers.some((answer) => normalizedGuess === answer);
+		// For playlists, always validate both title and artist since all submissions come from dropdown
+		// For other types (artist/album), just check the title since artist is implied
+		if (displayType() === 'playlist' && selectedTrackFromDropdown) {
+			// For playlists, check both title and artist match
+			const titleMatches = normalizeTitle(selectedTrackFromDropdown.name) === normalizedTitle;
+			const artistMatches = selectedTrackFromDropdown.artistNames.some(artist =>
+				currentTrack!.artistNames.includes(artist)
+			);
+			isCorrect = titleMatches && artistMatches;
 		} else {
-			// For artist and album types, just check the title (since artist is implied)
+			// For artist/album types, just check the title
 			isCorrect = normalizedGuess === normalizedTitle;
 		}
 
@@ -567,6 +570,9 @@
 			showAnswer = true; // Show answer on incorrect guess too
 			streak = 0; // Reset streak on incorrect guess
 		}
+
+		// Clear the selected track from dropdown for next guess
+		selectedTrackFromDropdown = null;
 
 		// Allow advancing to next song after a very short delay
 		setTimeout(() => {
@@ -619,6 +625,7 @@
 	// Select suggestion
 	function selectSuggestion(track: GameTrack) {
 		guessInput = track.name;
+		selectedTrackFromDropdown = track; // Store the selected track for validation
 		suggestions = [];
 		submitGuess();
 	}
