@@ -116,7 +116,8 @@
 				</DropdownMenuContent>
 			</DropdownMenu>
 		{/if}
-	</header>
+	</div>
+</header>
 
 	<!-- Page Content -->
 	{@render children?.()}

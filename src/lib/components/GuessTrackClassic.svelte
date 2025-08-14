@@ -10,7 +10,8 @@
 		Loader2,
 		AlertCircle,
 		Flame,
-		Music
+		Music,
+		Plus
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -121,6 +122,16 @@
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
 	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
+	let currentPlayDuration = $state(1); // Current play duration in seconds (1, 2, 4, 7, 11)
+	let triesUsed = $state(0); // Number of tries used (0-4, where 0 means initial 1 second)
+	let maxTries = 5; // Maximum number of tries allowed
+	let isPlayingFullSong = $state(false); // Track if playing full song after incorrect guess
+
+	// Calculate the durations for each try (1, 2, 4, 7, 11 seconds)
+	const tryDurations = [1, 2, 4, 7, 11];
+
+	// Get the current duration based on tries used
+	const getCurrentDuration = () => tryDurations[triesUsed] || 11;
 
 	// Spotify SDK references
 	let player: any = null;
@@ -454,6 +465,11 @@
 		canAdvance = false; // Reset advance state
 		isPaused = false; // Reset pause state
 		errorMessage = null; // Clear any previous errors when starting new round
+		
+		// Reset Classic mode specific states
+		currentPlayDuration = 1;
+		triesUsed = 0;
+		isPlayingFullSong = false;
 
 		// Auto-play the new track only if autoPlay is true (subsequent songs)
 		if (autoPlay && playerState === 'ready' && deviceId) {
@@ -461,7 +477,7 @@
 		}
 	}
 
-	// Play current track from start - CLASSIC MODE: Only play for 1 second
+	// Play current track from start - CLASSIC MODE: Play for specified duration
 	async function playFromStart() {
 		if (!currentTrack || !deviceId) {
 			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
@@ -473,10 +489,12 @@
 			isPaused = false; // Ensure we're not in paused state when playing from start
 			errorMessage = null; // Clear any previous errors
 
-			console.log('=== Starting playback (Classic Mode - 1 second) ===');
+			const duration = getCurrentDuration();
+			console.log(`=== Starting playback (Classic Mode - ${duration} seconds) ===`);
 			console.log('Track:', currentTrack.name);
 			console.log('URI:', currentTrack.uri);
 			console.log('Device ID:', deviceId);
+			console.log('Tries used:', triesUsed);
 
 			// Always use a fresh play request with specific URI to avoid queue issues
 			const payload = {
@@ -523,20 +541,22 @@
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
 
-			// CLASSIC MODE: Stop after 1 second
-			setTimeout(async () => {
-				if (deviceId) {
-					try {
-						console.log('⏹️ Stopping playback after 1 second (Classic Mode)');
-						await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
-							method: 'PUT'
-						});
-						isPaused = true;
-					} catch (error) {
-						console.error('Failed to pause after 1 second:', error);
+			// CLASSIC MODE: Stop after specified duration (unless playing full song after incorrect guess)
+			if (!isPlayingFullSong) {
+				setTimeout(async () => {
+					if (deviceId && !showAnswer) { // Don't stop if answer is already shown
+						try {
+							console.log(`⏹️ Stopping playback after ${duration} seconds (Classic Mode)`);
+							await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
+								method: 'PUT'
+							});
+							isPaused = true;
+						} catch (error) {
+							console.error(`Failed to pause after ${duration} seconds:`, error);
+						}
 					}
-				}
-			}, 1000); // Stop after 1 second
+				}, duration * 1000);
+			}
 
 			// Mark that first song has been played for this artist and focus input
 			if (isFirstSongForArtist) {
@@ -618,6 +638,61 @@
 		}
 	}
 
+	// Add more time to the current track (Classic mode feature)
+	async function addMoreTime() {
+		if (triesUsed >= maxTries - 1) return; // Already at max tries
+
+		triesUsed += 1;
+		currentPlayDuration = getCurrentDuration();
+		
+		console.log(`Adding more time: ${currentPlayDuration} seconds (try ${triesUsed + 1}/${maxTries})`);
+		
+		// Replay the track with the new duration
+		await playFromStart();
+	}
+
+	// Play the full song (after incorrect guess)
+	async function playFullSong() {
+		if (!currentTrack || !deviceId) {
+			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
+			return;
+		}
+
+		try {
+			isPlayingFullSong = true;
+			isPlaying = true;
+			isPaused = false;
+			errorMessage = null;
+
+			console.log('=== Playing full song ===');
+
+			const payload = {
+				uris: [currentTrack.uri],
+				position_ms: 0
+			};
+
+			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(errorText);
+			}
+
+			console.log('✅ Full song playback started');
+		} catch (error) {
+			console.error('❌ Full song play failed:', error);
+			errorMessage = error instanceof Error ? error.message : 'Failed to play full song';
+		} finally {
+			isPlaying = false;
+		}
+	}
+
 	// Submit guess
 	function submitGuess() {
 		if (!currentTrack || !guessInput.trim()) return;
@@ -649,6 +724,15 @@
 			guessStatus = 'incorrect';
 			showAnswer = true; // Show answer on incorrect guess too
 			streak = 0; // Reset streak on incorrect guess
+			// Reset tries for next round when incorrect
+			triesUsed = 0;
+			currentPlayDuration = 1;
+			// Start playing the full song after incorrect guess
+			setTimeout(() => {
+				if (guessStatus === 'incorrect') {
+					playFullSong();
+				}
+			}, 100);
 		}
 
 		// Clear the selected track from dropdown for next guess
@@ -796,7 +880,9 @@
 					<h3 class="text-xl font-semibold text-white">
 						{headerText()}
 					</h3>
-					<p class="text-sm text-gray-400">Classic Mode - 1 second clips</p>
+					<p class="text-sm text-gray-400">
+					Classic Mode - {getCurrentDuration()} second{getCurrentDuration() > 1 ? 's' : ''}
+				</p>
 				</div>
 			</div>
 
@@ -813,6 +899,17 @@
 					{streak}
 				</div>
 			</div>
+		</div>
+
+		<!-- Tries Indicator -->
+		<div class="mb-4 flex items-center justify-center gap-2">
+			{#each Array(maxTries) as _, index}
+				<div
+					class="h-3 w-3 rounded-full border-2 {index <= triesUsed
+						? 'bg-red-500 border-red-500'
+						: 'bg-green-500 border-green-500'}"
+				></div>
+			{/each}
 		</div>
 
 		<!-- Player Status -->
@@ -881,24 +978,60 @@
 		<!-- Current Track Info -->
 		{#if currentTrack}
 			<div class="mb-6">
-				<div class="mb-4 flex items-center gap-4">
+			<div class="mb-4 flex items-center gap-4">
+				<Button
+					onclick={playFromStart}
+					disabled={playerState !== 'ready' || !deviceId || isPlaying}
+					class="flex items-center gap-2"
+				>
+					{#if isPlaying}
+						<Loader2 class="h-4 w-4 animate-spin" />
+					{:else if isFirstSongForArtist}
+						<Play class="h-4 w-4" />
+					{:else}
+						<RotateCcw class="h-4 w-4" />
+					{/if}
+					{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
+				</Button>
+
+				<!-- Show +1 sec button if not first song, not showing answer, and not at max tries -->
+				{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries - 1}
 					<Button
-						onclick={playFromStart}
+						onclick={addMoreTime}
 						disabled={playerState !== 'ready' || !deviceId || isPlaying}
 						class="flex items-center gap-2"
+						variant="outline"
 					>
-						{#if isPlaying}
-							<Loader2 class="h-4 w-4 animate-spin" />
-						{:else if isFirstSongForArtist}
-							<Play class="h-4 w-4" />
-						{:else}
-							<RotateCcw class="h-4 w-4" />
-						{/if}
-						{isFirstSongForArtist ? 'Play' : 'Replay'} (1 sec)
+						<Plus class="h-4 w-4" />
+						+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
 					</Button>
-				</div>
+				{/if}
 
-				<!-- Guess Input -->
+				<!-- Show pause/resume buttons when playing full song after incorrect guess -->
+				{#if guessStatus === 'incorrect' && showAnswer && isPlayingFullSong}
+					{#if isPaused}
+						<Button
+							onclick={resumeTrack}
+							disabled={playerState !== 'ready' || !deviceId}
+							class="flex items-center gap-2"
+							variant="outline"
+						>
+							<Play class="h-4 w-4" />
+							Resume
+						</Button>
+					{:else}
+						<Button
+							onclick={pauseTrack}
+							disabled={playerState !== 'ready' || !deviceId}
+							class="flex items-center gap-2"
+							variant="outline"
+						>
+							<Pause class="h-4 w-4" />
+							Pause
+						</Button>
+					{/if}
+				{/if}
+			</div>				<!-- Guess Input -->
 				<div class="relative mb-4">
 					<input
 						bind:this={guessInputElement}
