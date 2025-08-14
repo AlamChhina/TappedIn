@@ -4,13 +4,11 @@
 		CardHeader,
 		CardTitle,
 		CardDescription,
-		CardContent,
-		CardFooter
+		CardContent
 	} from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
-	import { Play, ListMusic, Headphones, LogIn } from 'lucide-svelte';
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { LogIn } from 'lucide-svelte';
+	import ArtistSearch from '$lib/components/ArtistSearch.svelte';
 
 	export let data;
 
@@ -20,20 +18,13 @@
 	const handleSignIn = () => {
 		window.location.href = '/login/spotify';
 	};
-
-	// Redirect to classic mode if user is logged in
-	onMount(() => {
-		if (session.loggedIn) {
-			goto('/classic');
-		}
-	});
 </script>
 
 <svelte:head>
-	<title>Tapped In</title>
+	<title>Classic Mode - Tapped In</title>
 	<meta
 		name="description"
-		content="Connect your Spotify account and test your music knowledge with song guessing challenges."
+		content="Test your music knowledge with Classic mode - guess the song from just the first second!"
 	/>
 </svelte:head>
 
@@ -59,6 +50,22 @@
 					</Button>
 				</CardContent>
 			</Card>
+		</div>
+	</main>
+{:else}
+	<!-- Signed-in state: Show welcome message and artist search -->
+	<main class="min-h-[calc(100vh-80px)] p-4">
+		<div class="mx-auto mt-8 max-w-4xl space-y-8">
+			<!-- Welcome Section -->
+			<div class="text-center">
+				<h2 class="h2 mb-2 text-2xl text-white">
+					Classic Mode
+				</h2>
+				<p class="text-gray-400">Guess the song from just the first second - the ultimate challenge!</p>
+			</div>
+
+			<!-- Artist Search Component -->
+			<ArtistSearch gameMode="classic" />
 		</div>
 	</main>
 {/if}

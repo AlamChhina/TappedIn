@@ -3,8 +3,16 @@
 	import { Search, Music, Loader2, Album, ListMusic, ExternalLink } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
+	import GuessTrackClassic from './GuessTrackClassic.svelte';
 	import type { GameTrack, SearchResult, SearchResultType } from '$lib/types';
 	import { parseSpotifyUrl, isSpotifyUrl } from '$lib/utils/spotifyUrl';
+
+	// Props
+	interface Props {
+		gameMode?: 'classic' | 'zen';
+	}
+
+	let { gameMode = 'zen' }: Props = $props();
 
 	// Component state
 	let searchQuery = $state('');
@@ -372,7 +380,11 @@
 	{#if tracks.length > 0 && selectedItem && selectedType}
 		<div class="space-y-4">
 			<!-- Guess Track Component -->
-			<GuessTrack {tracks} item={selectedItem} itemType={selectedType} />
+			{#if gameMode === 'classic'}
+				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} />
+			{:else}
+				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} />
+			{/if}
 		</div>
 	{:else if selectedItem && selectedType && !isFetchingTracks && !tracksError}
 		<div class="p-8 text-center text-gray-400">

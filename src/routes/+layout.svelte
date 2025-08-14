@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Avatar, AvatarImage, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Button } from '$lib/components/ui/button';
 	import {
 		DropdownMenu,
 		DropdownMenuContent,
@@ -9,6 +10,7 @@
 		DropdownMenuTrigger
 	} from '$lib/components/ui/dropdown-menu';
 	import { Music, UserRound, LogOut } from 'lucide-svelte';
+	import { page } from '$app/stores';
 
 	let { children, data } = $props();
 
@@ -43,13 +45,42 @@
 <div class="min-h-screen" style="background-color: #121212;">
 	<!-- Top Header Bar -->
 	<header class="flex items-center justify-between border-b p-4" style="border-color: #282828;">
-		<!-- App Title -->
-		<div class="flex items-center">
-			
-			<h1 class="app-title text-xl text-white">Tapped In</h1>
-			<div class="p-2">
-				<img src="/logo.svg" alt="Logo" class="h-8 w-8" />
+		<!-- App Title and Navigation -->
+		<div class="flex items-center gap-6">
+			<div class="flex items-center">
+				<h1 class="app-title text-xl text-white">Tapped In</h1>
+				<div class="p-2">
+					<img src="/logo.svg" alt="Logo" class="h-8 w-8" />
+				</div>
 			</div>
+
+			<!-- Game Mode Navigation (only show when logged in) -->
+			{#if session.loggedIn}
+				<nav class="flex items-center gap-2">
+					<a
+						href="/classic"
+						class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-3 {$page.url.pathname === '/classic'
+							? 'bg-primary text-primary-foreground hover:bg-primary/90'
+							: 'hover:bg-accent hover:text-accent-foreground'}"
+						style="{$page.url.pathname === '/classic'
+							? 'background-color: #1DB954; color: black;'
+							: 'background-color: transparent; color: #b3b3b3;'} transition: all 0.2s;"
+					>
+						Classic
+					</a>
+					<a
+						href="/zen"
+						class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-3 {$page.url.pathname === '/zen'
+							? 'bg-primary text-primary-foreground hover:bg-primary/90'
+							: 'hover:bg-accent hover:text-accent-foreground'}"
+						style="{$page.url.pathname === '/zen'
+							? 'background-color: #1DB954; color: black;'
+							: 'background-color: transparent; color: #b3b3b3;'} transition: all 0.2s;"
+					>
+						Zen
+					</a>
+				</nav>
+			{/if}
 		</div>
 
 		<!-- User Avatar (if signed in) -->
