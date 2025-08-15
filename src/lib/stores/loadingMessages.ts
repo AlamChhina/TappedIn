@@ -125,11 +125,11 @@ function createLoadingStore() {
 				isLargeCollection
 			});
 
-			// Start rotation after 2 seconds
+			// Start rotation after 4 seconds
 			setTimeout(() => {
 				updateToFirstMessage();
-				rotationInterval = setInterval(updateToNextMessage, 3000);
-			}, 2000);
+				rotationInterval = setInterval(updateToNextMessage, 5000);
+			}, 4000);
 		},
 
 		stopLoading() {
