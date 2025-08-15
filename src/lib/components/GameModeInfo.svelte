@@ -9,7 +9,7 @@
 		DialogDescription 
 	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
-	import { Info } from 'lucide-svelte';
+	import { Info, Play, List, Headphones } from 'lucide-svelte';
 
 	type GameMode = 'classic' | 'zen';
 
@@ -44,11 +44,18 @@
 				title: 'Classic Mode',
 				description: 'Test your music knowledge with the ultimate challenge!',
 				features: [
-					'Hear just the first second of each song',
-					'Quick-fire guessing action',
-					'Challenge yourself to identify tracks instantly',
-					'Track your accuracy and speed',
-					'Perfect for music trivia enthusiasts'
+					{
+						icon: Play,
+						text: 'Hear just the first second of each song and guess quickly.'
+					},
+					{
+						icon: List,
+						text: 'Quick-fire rounds to test your instant recognition skills.'
+					},
+					{
+						icon: Headphones,
+						text: 'Challenge yourself to identify tracks from brief snippets.'
+					}
 				],
 			};
 		} else {
@@ -56,11 +63,18 @@
 				title: 'Zen Mode',
 				description: 'Relax and enjoy music while you guess at your own pace.',
 				features: [
-					'Full songs play from start to finish',
-					'No time pressure - take your time',
-					'Think and analyze the complete track',
-					'Enjoy the full musical experience',
-					'Perfect for discovering new music'
+					{
+						icon: Play,
+						text: 'Full songs play from start to finish with no time pressure.'
+					},
+					{
+						icon: List,
+						text: 'Take your time to think and analyze the complete track.'
+					},
+					{
+						icon: Headphones,
+						text: 'Enjoy the full musical experience while discovering new music.'
+					}
 				],
 			};
 		}
@@ -89,14 +103,14 @@
 		</DialogHeader>
 		
 		<div class="space-y-4">
-			<div>
-				<h4 class="mb-3 font-medium text-white">How it works:</h4>
-				<ul class="space-y-2">
-					{#each content.features as feature}
-						<li class="text-sm text-gray-300">{feature}</li>
-					{/each}
-				</ul>
-			</div>
+			{#each content.features as feature}
+				<div class="flex items-start gap-4">
+					<div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+						<svelte:component this={feature.icon} size={16} class="text-white" />
+					</div>
+					<p class="text-sm text-gray-300 pt-1">{feature.text}</p>
+				</div>
+			{/each}
 		</div>
 		
 		<div class="flex justify-end">
