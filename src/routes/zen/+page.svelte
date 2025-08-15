@@ -9,6 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { LogIn } from 'lucide-svelte';
 	import ArtistSearch from '$lib/components/ArtistSearch.svelte';
+	import GameModeInfo from '$lib/components/GameModeInfo.svelte';
 
 	export let data;
 
@@ -58,10 +59,12 @@
 		<div class="mx-auto mt-8 max-w-4xl space-y-8">
 			<!-- Welcome Section -->
 			<div class="text-center">
-				<h2 class="h2 mb-2 text-2xl text-white">
-					Zen Mode
-				</h2>
-				<p class="text-gray-400">Take your time and enjoy the full songs while you guess</p>
+				<div class="flex items-center justify-center">
+					<h2 class="h2 text-2xl text-white">
+						Zen Mode
+					</h2>
+					<GameModeInfo mode="zen" />
+				</div>
 			</div>
 
 			<!-- Artist Search Component -->
