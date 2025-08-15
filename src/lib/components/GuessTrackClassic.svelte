@@ -119,6 +119,11 @@
 	let canAdvance = $state(false); // Separate state for when Enter can advance
 	let streak = $state(0); // Track correct guesses in a row
 	let retryCount = $state(0); // Track auto-retry attempts
+	let playbackStartTime = $state<number | null>(null); // Track when playback actually starts
+	let stopTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null); // Track timeout ID for stopping
+	let timingDebugInfo = $state<string>(''); // Debug information for timing
+	let targetStopPosition = $state<number | null>(null); // Target position to stop at (in ms)
+	let positionCheckInterval = $state<ReturnType<typeof setInterval> | null>(null); // Interval for checking position
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
 	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
@@ -345,6 +350,106 @@
 				// The error will show when user tries to play and it fails
 			});
 
+			// Player state changed - track when playback actually starts and monitor position
+			player.addListener('player_state_changed', (state: any) => {
+				if (state) {
+					const stateInfo = `paused: ${state.paused}, position: ${state.position}, duration: ${state.duration}`;
+					console.log('Player state changed:', stateInfo);
+					timingDebugInfo = stateInfo;
+					
+					// Track when playback actually starts for precise timing
+					if (!state.paused && state.position > 0 && playbackStartTime === null && !isPlayingFullSong) {
+						playbackStartTime = Date.now();
+						const duration = getCurrentDuration();
+						targetStopPosition = duration * 1000; // Convert to milliseconds
+						
+						console.log('🎵 Playback started at position:', state.position);
+						console.log('🎯 Target stop position:', targetStopPosition, 'ms');
+						
+						timingDebugInfo = `Started, target: ${targetStopPosition}ms`;
+						
+						// Start precise position monitoring (check every 25ms for better precision)
+						if (positionCheckInterval) {
+							clearInterval(positionCheckInterval);
+						}
+						
+						positionCheckInterval = setInterval(async () => {
+							try {
+								// Get current player state to check position
+								const currentState = await player.getCurrentState();
+								if (currentState && !currentState.paused && targetStopPosition) {
+									const currentPos = currentState.position;
+									
+									// Stop when we reach or exceed target position
+									if (currentPos >= targetStopPosition) {
+										console.log(`⏹️ Precise stop at ${currentPos}ms (target: ${targetStopPosition}ms, diff: ${currentPos - targetStopPosition}ms)`);
+										timingDebugInfo = `Stopped at ${currentPos}ms (target: ${targetStopPosition}ms, diff: +${currentPos - targetStopPosition}ms)`;
+										
+										// Clear interval first
+										if (positionCheckInterval) {
+											clearInterval(positionCheckInterval);
+											positionCheckInterval = null;
+										}
+										
+										// Pause playback
+										if (deviceId && !showAnswer && !isPlayingFullSong) {
+											await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
+												method: 'PUT'
+											});
+											isPaused = true;
+											playbackStartTime = null;
+											targetStopPosition = null;
+										}
+									}
+								}
+							} catch (error) {
+								console.error('Position check error:', error);
+							}
+						}, 25); // Check every 25ms for higher precision (40 checks/second)
+						
+						// Fallback timeout (in case position monitoring fails)
+						if (stopTimeoutId) {
+							clearTimeout(stopTimeoutId);
+						}
+						
+						stopTimeoutId = setTimeout(async () => {
+							console.log('⚠️ Fallback timeout triggered');
+							if (positionCheckInterval) {
+								clearInterval(positionCheckInterval);
+								positionCheckInterval = null;
+							}
+							if (deviceId && !showAnswer && !isPlayingFullSong) {
+								await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
+									method: 'PUT'
+								});
+								isPaused = true;
+								playbackStartTime = null;
+								targetStopPosition = null;
+							}
+							stopTimeoutId = null;
+						}, (duration + 1) * 1000);
+					}
+					
+					// Reset timing if playback is paused or stopped
+					if (state.paused || state.position === 0) {
+						if (playbackStartTime && !isPlayingFullSong) {
+							console.log('🔄 Playback paused/stopped, resetting timing');
+							timingDebugInfo = 'Playback paused/stopped - timing reset';
+							playbackStartTime = null;
+							targetStopPosition = null;
+							if (stopTimeoutId) {
+								clearTimeout(stopTimeoutId);
+								stopTimeoutId = null;
+							}
+							if (positionCheckInterval) {
+								clearInterval(positionCheckInterval);
+								positionCheckInterval = null;
+							}
+						}
+					}
+				}
+			});
+
 			// Connect the player
 			console.log('Connecting player...');
 			const success = await player.connect();
@@ -470,6 +575,19 @@
 		currentPlayDuration = 1;
 		triesUsed = 0;
 		isPlayingFullSong = false;
+		
+		// Reset timing state
+		playbackStartTime = null;
+		timingDebugInfo = '';
+		targetStopPosition = null;
+		if (stopTimeoutId) {
+			clearTimeout(stopTimeoutId);
+			stopTimeoutId = null;
+		}
+		if (positionCheckInterval) {
+			clearInterval(positionCheckInterval);
+			positionCheckInterval = null;
+		}
 
 		// Auto-play the new track only if autoPlay is true (subsequent songs)
 		if (autoPlay && playerState === 'ready' && deviceId) {
@@ -488,6 +606,19 @@
 			isPlaying = true;
 			isPaused = false; // Ensure we're not in paused state when playing from start
 			errorMessage = null; // Clear any previous errors
+			
+			// Reset timing state for new playback
+			playbackStartTime = null;
+			timingDebugInfo = 'Starting playback...';
+			targetStopPosition = null;
+			if (stopTimeoutId) {
+				clearTimeout(stopTimeoutId);
+				stopTimeoutId = null;
+			}
+			if (positionCheckInterval) {
+				clearInterval(positionCheckInterval);
+				positionCheckInterval = null;
+			}
 
 			const duration = getCurrentDuration();
 			console.log(`=== Starting playback (Classic Mode - ${duration} seconds) ===`);
@@ -541,22 +672,7 @@
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
 
-			// CLASSIC MODE: Stop after specified duration (unless playing full song after incorrect guess)
-			if (!isPlayingFullSong) {
-				setTimeout(async () => {
-					if (deviceId && !showAnswer) { // Don't stop if answer is already shown
-						try {
-							console.log(`⏹️ Stopping playback after ${duration} seconds (Classic Mode)`);
-							await fetch(`/api/spotify/player/pause?device_id=${deviceId}`, {
-								method: 'PUT'
-							});
-							isPaused = true;
-						} catch (error) {
-							console.error(`Failed to pause after ${duration} seconds:`, error);
-						}
-					}
-				}, duration * 1000);
-			}
+			// Precise timing is now handled by position monitoring in the player_state_changed listener
 
 			// Mark that first song has been played for this artist and focus input
 			if (isFirstSongForArtist) {
@@ -663,6 +779,19 @@
 			isPlaying = true;
 			isPaused = false;
 			errorMessage = null;
+			
+			// Reset timing state since we're playing the full song
+			playbackStartTime = null;
+			timingDebugInfo = 'Playing full song...';
+			targetStopPosition = null;
+			if (stopTimeoutId) {
+				clearTimeout(stopTimeoutId);
+				stopTimeoutId = null;
+			}
+			if (positionCheckInterval) {
+				clearInterval(positionCheckInterval);
+				positionCheckInterval = null;
+			}
 
 			console.log('=== Playing full song ===');
 
@@ -814,6 +943,14 @@
 			player.disconnect();
 		}
 
+		// Clear any pending timeouts and intervals
+		if (stopTimeoutId) {
+			clearTimeout(stopTimeoutId);
+		}
+		if (positionCheckInterval) {
+			clearInterval(positionCheckInterval);
+		}
+
 		// Remove global keydown listener
 		document.removeEventListener('keydown', handleGlobalKeydown);
 	});
@@ -956,6 +1093,15 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Debug Timing Info (development only) -->
+		<!-- Commented out for production - uncomment for debugging timing issues -->
+		<!-- {#if timingDebugInfo && import.meta.env.DEV}
+			<div class="mb-4 rounded border border-yellow-600 bg-yellow-900/20 p-2 text-xs text-yellow-400">
+				<div class="font-semibold">Timing Debug:</div>
+				<div>{timingDebugInfo}</div>
+			</div>
+		{/if} -->
 
 		<!-- Error Message -->
 		{#if errorMessage}
