@@ -11,7 +11,8 @@
 		AlertCircle,
 		Flame,
 		Music,
-		Plus
+		Plus,
+		HeartCrack
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -871,6 +872,28 @@
 		}, 50); // 50ms delay - just enough to prevent immediate skip
 	}
 
+	// Give up and reveal the answer
+	function giveUp() {
+		if (!currentTrack || showAnswer) return;
+
+		guessStatus = 'incorrect';
+		showAnswer = true;
+		streak = 0; // Reset streak on give up
+
+		// Clear the selected track from dropdown
+		selectedTrackFromDropdown = null;
+
+		// Start playing the full song after giving up
+		setTimeout(() => {
+			playFullSong();
+		}, 100);
+
+		// Allow advancing to next song after a very short delay
+		setTimeout(() => {
+			canAdvance = true;
+		}, 50);
+	}
+
 	// Handle keyboard navigation in input
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
@@ -1123,70 +1146,84 @@
 		<!-- Current Track Info -->
 		{#if currentTrack}
 			<div class="mb-6">
-			<div class="mb-4 flex items-center gap-4">
-				{#if showAnswer && isPlayingFullSong}
-					<!-- When playing full song after guess, show full song replay button -->
-					<Button
-						onclick={playFullSong}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying}
-						class="flex items-center gap-2"
-					>
-						{#if isPlaying}
-							<Loader2 class="h-4 w-4 animate-spin" />
-						{:else}
-							<RotateCcw class="h-4 w-4" />
-						{/if}
-						Replay
-					</Button>
-
-					<!-- Pause/Resume buttons when playing full song -->
-					{#if isPaused}
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-4">
+					{#if showAnswer && isPlayingFullSong}
+						<!-- When playing full song after guess, show full song replay button -->
 						<Button
-							onclick={resumeTrack}
-							disabled={playerState !== 'ready' || !deviceId}
+							onclick={playFullSong}
+							disabled={playerState !== 'ready' || !deviceId || isPlaying}
 							class="flex items-center gap-2"
 						>
-							<Play class="h-4 w-4" />
-							Resume
+							{#if isPlaying}
+								<Loader2 class="h-4 w-4 animate-spin" />
+							{:else}
+								<RotateCcw class="h-4 w-4" />
+							{/if}
+							Replay
 						</Button>
+
+						<!-- Pause/Resume buttons when playing full song -->
+						{#if isPaused}
+							<Button
+								onclick={resumeTrack}
+								disabled={playerState !== 'ready' || !deviceId}
+								class="flex items-center gap-2"
+							>
+								<Play class="h-4 w-4" />
+								Resume
+							</Button>
+						{:else}
+							<Button
+								onclick={pauseTrack}
+								disabled={playerState !== 'ready' || !deviceId}
+								class="flex items-center gap-2"
+							>
+								<Pause class="h-4 w-4" />
+								Pause
+							</Button>
+						{/if}
 					{:else}
+						<!-- When not showing answer or not playing full song, show timed replay button -->
 						<Button
-							onclick={pauseTrack}
-							disabled={playerState !== 'ready' || !deviceId}
-							class="flex items-center gap-2"
-						>
-							<Pause class="h-4 w-4" />
-							Pause
-						</Button>
-					{/if}
-				{:else}
-					<!-- When not showing answer or not playing full song, show timed replay button -->
-					<Button
-						onclick={playFromStart}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
-						class="flex items-center gap-2"
-					>
-						{#if isPlaying}
-							<Loader2 class="h-4 w-4 animate-spin" />
-						{:else if isFirstSongForArtist}
-							<Play class="h-4 w-4" />
-						{:else}
-							<RotateCcw class="h-4 w-4" />
-						{/if}
-						{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
-					</Button>
-
-					<!-- Show +X sec button if not first song, not showing answer, and not at max tries -->
-					{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries}
-						<Button
-							onclick={addMoreTime}
+							onclick={playFromStart}
 							disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
 							class="flex items-center gap-2"
 						>
-							<Plus class="h-4 w-4" />
-							+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
+							{#if isPlaying}
+								<Loader2 class="h-4 w-4 animate-spin" />
+							{:else if isFirstSongForArtist}
+								<Play class="h-4 w-4" />
+							{:else}
+								<RotateCcw class="h-4 w-4" />
+							{/if}
+							{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
 						</Button>
+
+						<!-- Show +X sec button if not first song, not showing answer, and not at max tries -->
+						{#if !isFirstSongForArtist && !showAnswer && triesUsed < maxTries}
+							<Button
+								onclick={addMoreTime}
+								disabled={playerState !== 'ready' || !deviceId || isPlaying || (!isPaused && hasPlayedFirstSong)}
+								class="flex items-center gap-2"
+							>
+								<Plus class="h-4 w-4" />
+								+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
+							</Button>
+						{/if}
 					{/if}
+				</div>
+
+				<!-- Give Up Button -->
+				{#if !isFirstSongForArtist && !showAnswer}
+					<Button
+						onclick={giveUp}
+						disabled={playerState !== 'ready'}
+						class="flex items-center gap-2"
+					>
+						<HeartCrack class="h-4 w-4" />
+						Give Up
+					</Button>
 				{/if}
 			</div>				<!-- Guess Input -->
 				<div class="relative mb-4">

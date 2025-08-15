@@ -86,7 +86,7 @@
 	variant="ghost"
 	size="sm"
 	onclick={openInfoModal}
-	class="ml-1 h-8 w-8 p-0 text-white flex items-center justify-center hover:text-gray-300 hover:bg-transparent cursor-pointer transition-colors"
+	class="h-8 w-8 p-0 text-white flex items-center justify-center hover:text-gray-300 hover:bg-transparent cursor-pointer transition-colors"
 	title="Game mode information"
 >
 	<Info size={16} />

@@ -10,7 +10,8 @@
 		Loader2,
 		AlertCircle,
 		Flame,
-		Music
+		Music,
+		HeartCrack
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -645,6 +646,23 @@
 		}, 50); // 50ms delay - just enough to prevent immediate skip
 	}
 
+	// Give up and reveal the answer
+	function giveUp() {
+		if (!currentTrack || showAnswer) return;
+
+		guessStatus = 'incorrect';
+		showAnswer = true;
+		streak = 0; // Reset streak on give up
+
+		// Clear the selected track from dropdown
+		selectedTrackFromDropdown = null;
+
+		// Allow advancing to next song after a very short delay
+		setTimeout(() => {
+			canAdvance = true;
+		}, 50);
+	}
+
 	// Handle keyboard navigation in input
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
@@ -865,42 +883,56 @@
 		<!-- Current Track Info -->
 		{#if currentTrack}
 			<div class="mb-6">
-				<div class="mb-4 flex items-center gap-4">
-					<Button
-						onclick={playFromStart}
-						disabled={playerState !== 'ready' || !deviceId || isPlaying}
-						class="flex items-center gap-2"
-					>
-						{#if isPlaying}
-							<Loader2 class="h-4 w-4 animate-spin" />
-						{:else if isFirstSongForArtist}
-							<Play class="h-4 w-4" />
-						{:else}
-							<RotateCcw class="h-4 w-4" />
-						{/if}
-						{isFirstSongForArtist ? 'Play' : 'Replay'}
-					</Button>
-
-					{#if !isFirstSongForArtist}
-						{#if isPaused}
-							<Button
-								onclick={resumeTrack}
-								disabled={playerState !== 'ready' || !deviceId}
-								class="flex items-center gap-2"
-							>
+				<div class="mb-4 flex items-center justify-between">
+					<div class="flex items-center gap-4">
+						<Button
+							onclick={playFromStart}
+							disabled={playerState !== 'ready' || !deviceId || isPlaying}
+							class="flex items-center gap-2"
+						>
+							{#if isPlaying}
+								<Loader2 class="h-4 w-4 animate-spin" />
+							{:else if isFirstSongForArtist}
 								<Play class="h-4 w-4" />
-								Resume
-							</Button>
-						{:else}
-							<Button
-								onclick={pauseTrack}
-								disabled={playerState !== 'ready' || !deviceId}
-								class="flex items-center gap-2"
-							>
-								<Pause class="h-4 w-4" />
-								Pause
-							</Button>
+							{:else}
+								<RotateCcw class="h-4 w-4" />
+							{/if}
+							{isFirstSongForArtist ? 'Play' : 'Replay'}
+						</Button>
+
+						{#if !isFirstSongForArtist}
+							{#if isPaused}
+								<Button
+									onclick={resumeTrack}
+									disabled={playerState !== 'ready' || !deviceId}
+									class="flex items-center gap-2"
+								>
+									<Play class="h-4 w-4" />
+									Resume
+								</Button>
+							{:else}
+								<Button
+									onclick={pauseTrack}
+									disabled={playerState !== 'ready' || !deviceId}
+									class="flex items-center gap-2"
+								>
+									<Pause class="h-4 w-4" />
+									Pause
+								</Button>
+							{/if}
 						{/if}
+					</div>
+
+					<!-- Give Up Button -->
+					{#if !isFirstSongForArtist && !showAnswer}
+						<Button
+							onclick={giveUp}
+							disabled={playerState !== 'ready'}
+							class="flex items-center gap-2"
+						>
+							<HeartCrack class="h-4 w-4" />
+							Give Up
+						</Button>
 					{/if}
 				</div>
 
