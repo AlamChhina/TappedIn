@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { Input } from '$lib/components/ui/input';
 	import { Search, Music, Loader2, Album, ListMusic, ExternalLink } from 'lucide-svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
 	import GuessTrackClassic from './GuessTrackClassic.svelte';
+	import LoadingMessages from './LoadingMessages.svelte';
 	import type { GameTrack, SearchResult, SearchResultType } from '$lib/types';
 	import { parseSpotifyUrl, isSpotifyUrl } from '$lib/utils/spotifyUrl';
+	import { loadingMessages, type ItemType } from '$lib/stores/loadingMessages';
 
 	// Props
 	interface Props {
@@ -33,11 +35,13 @@
 	// Debounced search function
 	function debounceSearch(query: string) {
 		clearTimeout(debounceTimer);
-
+		
+		// Stop any ongoing loading when starting new search
 		if (query.trim().length === 0) {
 			searchResults = [];
 			showDropdown = false;
 			searchError = null;
+			loadingMessages.stopLoading();
 			return;
 		}
 
@@ -136,6 +140,12 @@
 		tracksError = null;
 		tracks = [];
 
+		// Determine if this is likely a large collection
+		const isLargeCollection = determineIfLargeCollection(item, type);
+
+		// Start loading messages
+		loadingMessages.startLoading(item.name, type as ItemType, isLargeCollection);
+
 		try {
 			let response;
 
@@ -165,7 +175,38 @@
 			tracks = [];
 		} finally {
 			isFetchingTracks = false;
+			loadingMessages.stopLoading();
 		}
+	}
+
+	// Helper function to determine if a collection is likely large
+	function determineIfLargeCollection(item: SearchResult, type: SearchResultType): boolean {
+		if (type === 'playlist') {
+			// Check if playlist has more than 100 tracks
+			const playlistItem = item as any;
+			return playlistItem.tracks?.total > 100;
+		}
+		
+		if (type === 'artist') {
+			// For artists, we could check popularity or known prolific artists
+			// For now, we'll use a simple heuristic based on name recognition or assume larger artists
+			// In the future, we could use additional API data to make this smarter
+			const artistItem = item as any;
+			// Very popular artists (high follower count) likely have large catalogs
+			return artistItem.followers?.total > 1000000 || artistItem.popularity > 80;
+		}
+		
+		// Albums are typically not that large, but compilations might be
+		if (type === 'album') {
+			const albumItem = item as any;
+			// Check for compilation albums or box sets which tend to be larger
+			return albumItem.total_tracks > 20 || 
+				   albumItem.name.toLowerCase().includes('compilation') ||
+				   albumItem.name.toLowerCase().includes('collection') ||
+				   albumItem.name.toLowerCase().includes('box set');
+		}
+		
+		return false;
 	}
 
 	// Handle keyboard navigation
@@ -275,6 +316,12 @@
 			clearTimeout(debounceTimer);
 		};
 	});
+
+	onDestroy(() => {
+		// Clean up loading messages when component is destroyed
+		loadingMessages.stopLoading();
+		clearTimeout(debounceTimer);
+	});
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
@@ -364,10 +411,7 @@
 
 	<!-- Loading State for Tracks -->
 	{#if isFetchingTracks && selectedItem && selectedType}
-		<div class="flex items-center justify-center gap-2 p-8 text-gray-400">
-			<Loader2 class="h-6 w-6 animate-spin" />
-			<span>Fetching tracks from {selectedItem.name}...</span>
-		</div>
+		<LoadingMessages />
 	{/if}
 
 	<!-- Tracks Error -->
