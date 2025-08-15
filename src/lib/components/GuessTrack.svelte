@@ -198,7 +198,7 @@
 			})
 			.filter(Boolean) // Remove null entries (no matches)
 			.sort((a, b) => b!.score - a!.score) // Sort by score descending
-			.slice(0, 5) // Limit to 5 suggestions
+			.slice(0, 10) // Limit to 10 suggestions
 			.map((item) => item!.track);
 
 		suggestions = scoredTracks;
