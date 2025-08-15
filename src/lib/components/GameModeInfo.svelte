@@ -42,7 +42,6 @@
 		if (mode === 'classic') {
 			return {
 				title: 'Classic Mode',
-				description: 'Test your music knowledge with the ultimate challenge!',
 				features: [
 					{
 						icon: Play,
@@ -61,7 +60,6 @@
 		} else {
 			return {
 				title: 'Zen Mode',
-				description: 'Relax and enjoy music while you guess at your own pace.',
 				features: [
 					{
 						icon: Play,
@@ -99,16 +97,15 @@
 	<DialogContent class="sm:max-w-md">
 		<DialogHeader>
 			<DialogTitle>{content.title}</DialogTitle>
-			<DialogDescription>{content.description}</DialogDescription>
 		</DialogHeader>
 		
 		<div class="space-y-4">
 			{#each content.features as feature}
-				<div class="flex items-start gap-4">
+				<div class="flex items-center gap-4">
 					<div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
 						<svelte:component this={feature.icon} size={16} class="text-white" />
 					</div>
-					<p class="text-sm text-gray-300 pt-1">{feature.text}</p>
+					<p class="text-sm text-gray-300">{feature.text}</p>
 				</div>
 			{/each}
 		</div>
