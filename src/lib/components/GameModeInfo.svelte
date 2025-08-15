@@ -101,7 +101,7 @@
 		
 		<div class="flex justify-end">
 			<Button onclick={() => showModal = false} class="bg-green-600 hover:bg-green-700">
-				Got it!
+				Got it
 			</Button>
 		</div>
 	</DialogContent>
