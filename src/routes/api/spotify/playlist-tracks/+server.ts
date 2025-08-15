@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { cache } from '$lib/server/cache.js';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const accessToken = cookies.get('sp_at');
@@ -15,6 +16,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	}
 
 	try {
+		// Check cache first
+		const cached = await cache.getCachedPlaylistTracks(playlistId);
+		if (cached) {
+			return json(cached);
+		}
+
 		const allTracks: any[] = [];
 		let nextUrl: string | null =
 			`https://api.spotify.com/v1/playlists/${playlistId}/tracks?market=from_token&limit=50&fields=items(track(id,name,uri,artists,duration_ms,popularity)),next`;
@@ -67,6 +74,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				artistNames: item.track.artists.map((artist: any) => artist.name),
 				duration_ms: item.track.duration_ms
 			}));
+
+		// Cache the result for 2 hours (playlists can change more frequently)
+		await cache.cachePlaylistTracks(playlistId, tracks);
 
 		return json(tracks);
 	} catch (err) {

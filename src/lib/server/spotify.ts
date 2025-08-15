@@ -1,4 +1,5 @@
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '$env/static/private';
+import { cache } from './cache.js';
 
 // Types for Spotify API responses
 export interface SpotifyArtist {
@@ -94,14 +95,85 @@ export async function pagedFetch<T>(
 
 // Get all albums/singles for an artist
 export async function getArtistAlbums(artistId: string, token: string): Promise<SpotifyAlbum[]> {
+	// Check cache first
+	const cached = await cache.getCachedApiResponse<SpotifyAlbum[]>('artist-albums', { artistId });
+	if (cached) {
+		return cached;
+	}
+
 	const url = `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album,single&market=from_token&limit=50`;
-	return pagedFetch<SpotifyAlbum>(url, token, 'items');
+	const albums = await pagedFetch<SpotifyAlbum>(url, token, 'items');
+	
+	// Cache the result for 6 hours (albums don't change often)
+	await cache.cacheApiResponse('artist-albums', { artistId }, albums, 6 * 60 * 60 * 1000);
+	
+	return albums;
 }
 
 // Get all tracks for an album
 export async function getAlbumTracks(albumId: string, token: string): Promise<SpotifyTrack[]> {
+	// Check cache first
+	const cached = await cache.getCachedApiResponse<SpotifyTrack[]>('album-tracks', { albumId });
+	if (cached) {
+		return cached;
+	}
+
 	const url = `https://api.spotify.com/v1/albums/${albumId}/tracks?market=from_token&limit=50`;
-	return pagedFetch<SpotifyTrack>(url, token, 'items');
+	const tracks = await pagedFetch<SpotifyTrack>(url, token, 'items');
+	
+	// Cache the result for 24 hours (tracks rarely change)
+	await cache.cacheApiResponse('album-tracks', { albumId }, tracks, 24 * 60 * 60 * 1000);
+	
+	return tracks;
+}
+
+// Helper function to hydrate a single chunk of track IDs
+async function hydrateTrackChunk(trackIds: string[], token: string): Promise<SpotifyTrack[]> {
+	const idsParam = trackIds.join(',');
+	
+	// Check cache first
+	const cached = await cache.getCachedApiResponse<SpotifyBatchTracksResponse>('batch-tracks', { ids: idsParam });
+	if (cached) {
+		return cached.tracks.filter((track) => track !== null);
+	}
+
+	let retryCount = 0;
+	const maxRetries = 3;
+
+	while (retryCount < maxRetries) {
+		await new Promise((resolve) => setTimeout(resolve, 100)); // Rate limiting
+
+		const response = await fetch(
+			`https://api.spotify.com/v1/tracks?ids=${idsParam}&market=from_token`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			}
+		);
+
+		if (response.status === 429) {
+			const retryAfter = response.headers.get('Retry-After');
+			const delay = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
+			await new Promise((resolve) => setTimeout(resolve, delay));
+			retryCount++;
+			continue;
+		}
+
+		if (!response.ok) {
+			throw new Error(`Failed to hydrate tracks: ${response.status} ${response.statusText}`);
+		}
+
+		const data: SpotifyBatchTracksResponse = await response.json();
+		const tracks = data.tracks.filter((track) => track !== null);
+		
+		// Cache the result for 12 hours
+		await cache.cacheApiResponse('batch-tracks', { ids: idsParam }, data, 12 * 60 * 60 * 1000);
+		
+		return tracks;
+	}
+
+	throw new Error(`Failed to hydrate tracks after ${maxRetries} retries`);
 }
 
 // Hydrate track IDs in batches to get full track info
@@ -111,42 +183,8 @@ export async function hydrateTracks(trackIds: string[], token: string): Promise<
 	// Process in chunks of 50 (Spotify's limit)
 	for (let i = 0; i < trackIds.length; i += 50) {
 		const chunk = trackIds.slice(i, i + 50);
-		const idsParam = chunk.join(',');
-		let retryCount = 0;
-		const maxRetries = 3;
-
-		while (retryCount < maxRetries) {
-			await new Promise((resolve) => setTimeout(resolve, 100)); // Rate limiting
-
-			const response = await fetch(
-				`https://api.spotify.com/v1/tracks?ids=${idsParam}&market=from_token`,
-				{
-					headers: {
-						Authorization: `Bearer ${token}`
-					}
-				}
-			);
-
-			if (response.status === 429) {
-				const retryAfter = response.headers.get('Retry-After');
-				const delay = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
-				await new Promise((resolve) => setTimeout(resolve, delay));
-				retryCount++;
-				continue;
-			}
-
-			if (!response.ok) {
-				throw new Error(`Failed to hydrate tracks: ${response.status} ${response.statusText}`);
-			}
-
-			const data: SpotifyBatchTracksResponse = await response.json();
-			allTracks.push(...data.tracks.filter((track) => track !== null));
-			break; // Success, exit retry loop
-		}
-
-		if (retryCount >= maxRetries) {
-			throw new Error(`Failed to hydrate tracks after ${maxRetries} retries`);
-		}
+		const tracks = await hydrateTrackChunk(chunk, token);
+		allTracks.push(...tracks);
 	}
 
 	return allTracks;
@@ -362,6 +400,12 @@ export async function collectPrimaryTracks(
 	artistId: string,
 	token: string
 ): Promise<SimplifiedTrack[]> {
+	// Check cache first - this is the most important cache since it saves all the API calls
+	const cached = await cache.getCachedArtistTracks(artistId);
+	if (cached) {
+		return cached;
+	}
+
 	// 1. Get all albums/singles for the artist
 	const albums = await getArtistAlbums(artistId, token);
 
@@ -426,7 +470,12 @@ export async function collectPrimaryTracks(
 	});
 
 	// 8. Apply sanitization
-	return sanitizeArtistTracks(simplifiedTracks, artistId);
+	const result = sanitizeArtistTracks(simplifiedTracks, artistId);
+	
+	// Cache the final result for 24 hours
+	await cache.cacheArtistTracks(artistId, result);
+	
+	return result;
 }
 
 export async function refreshWith(refresh_token: string) {

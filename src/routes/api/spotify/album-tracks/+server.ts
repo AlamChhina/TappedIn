@@ -1,5 +1,59 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { cache } from '$lib/server/cache.js';
+
+// Helper function to fetch all pages of album tracks
+async function fetchAlbumTracksPages(albumId: string, accessToken: string): Promise<any[]> {
+	const allTracks: any[] = [];
+	let nextUrl: string | null =
+		`https://api.spotify.com/v1/albums/${albumId}/tracks?market=from_token&limit=50`;
+
+	while (nextUrl) {
+		const response: Response = await fetch(nextUrl, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`
+			}
+		});
+
+		if (response.status === 429) {
+			const retryAfter = response.headers.get('Retry-After');
+			const delay = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
+			await new Promise((resolve) => setTimeout(resolve, delay));
+			continue;
+		}
+
+		if (!response.ok) {
+			throw error(response.status, `Spotify API error: ${response.statusText}`);
+		}
+
+		const data: any = await response.json();
+		allTracks.push(...data.items);
+		nextUrl = data.next;
+
+		// Add small delay to be respectful to API
+		await new Promise((resolve) => setTimeout(resolve, 100));
+	}
+
+	return allTracks;
+}
+
+// Helper function to fetch full track details
+async function fetchTrackDetails(trackIds: string, accessToken: string): Promise<any> {
+	const response: Response = await fetch(
+		`https://api.spotify.com/v1/tracks?ids=${trackIds}&market=from_token`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`
+			}
+		}
+	);
+
+	if (!response.ok) {
+		throw error(response.status, `Failed to fetch track details: ${response.statusText}`);
+	}
+
+	return response.json();
+}
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const accessToken = cookies.get('sp_at');
@@ -15,63 +69,26 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	}
 
 	try {
-		const allTracks: any[] = [];
-		let nextUrl: string | null =
-			`https://api.spotify.com/v1/albums/${albumId}/tracks?market=from_token&limit=50`;
-
-		// Fetch all pages of album tracks
-		while (nextUrl) {
-			const response: Response = await fetch(nextUrl, {
-				headers: {
-					Authorization: `Bearer ${accessToken}`
-				}
-			});
-
-			if (response.status === 429) {
-				const retryAfter = response.headers.get('Retry-After');
-				const delay = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
-				await new Promise((resolve) => setTimeout(resolve, delay));
-				continue;
-			}
-
-			if (!response.ok) {
-				throw error(response.status, `Spotify API error: ${response.statusText}`);
-			}
-
-			const data: any = await response.json();
-			allTracks.push(...data.items);
-			nextUrl = data.next;
-
-			// Add small delay to be respectful to API
-			await new Promise((resolve) => setTimeout(resolve, 100));
+		// Check cache first
+		const cached = await cache.getCachedApiResponse<any[]>('album-tracks-formatted', { albumId });
+		if (cached) {
+			return json(cached);
 		}
 
-		// Get track IDs for batch fetching full track data (to get popularity and duration)
+		// Fetch album tracks from all pages
+		const allTracks = await fetchAlbumTracksPages(albumId, accessToken);
+
+		// Get track IDs for batch fetching full track data
 		const trackIds = allTracks.map((track: any) => track.id).join(',');
 
 		if (!trackIds) {
 			return json([]);
 		}
 
-		const tracksResponse: Response = await fetch(
-			`https://api.spotify.com/v1/tracks?ids=${trackIds}&market=from_token`,
-			{
-				headers: {
-					Authorization: `Bearer ${accessToken}`
-				}
-			}
-		);
+		// Fetch full track details
+		const tracksData = await fetchTrackDetails(trackIds, accessToken);
 
-		if (!tracksResponse.ok) {
-			throw error(
-				tracksResponse.status,
-				`Failed to fetch track details: ${tracksResponse.statusText}`
-			);
-		}
-
-		const tracksData: any = await tracksResponse.json();
-
-		// Filter tracks by duration (>= 30 seconds) and format for game
+		// Filter tracks by duration and format for game
 		const tracks = tracksData.tracks
 			.filter((track: any) => track && track.duration_ms >= 30000)
 			.map((track: any) => ({
@@ -83,6 +100,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				artistNames: track.artists.map((artist: any) => artist.name),
 				duration_ms: track.duration_ms
 			}));
+
+		// Cache the result for 24 hours
+		await cache.cacheApiResponse('album-tracks-formatted', { albumId }, tracks, 24 * 60 * 60 * 1000);
 
 		return json(tracks);
 	} catch (err) {
