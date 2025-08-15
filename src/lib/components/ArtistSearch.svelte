@@ -10,9 +10,10 @@
 	// Props
 	interface Props {
 		gameMode?: 'classic' | 'zen';
+		playbackMode?: 'beginning' | 'random';
 	}
 
-	let { gameMode = 'zen' }: Props = $props();
+	let { gameMode = 'zen', playbackMode = 'beginning' }: Props = $props();
 
 	// Component state
 	let searchQuery = $state('');
@@ -381,9 +382,9 @@
 		<div class="space-y-4">
 			<!-- Guess Track Component -->
 			{#if gameMode === 'classic'}
-				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} />
+				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} />
 			{:else}
-				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} />
+				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} />
 			{/if}
 		</div>
 	{:else if selectedItem && selectedType && !isFetchingTracks && !tracksError}

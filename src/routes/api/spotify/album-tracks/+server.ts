@@ -80,7 +80,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				popularity: track.popularity || 0,
 				uri: track.uri,
 				artistIds: track.artists.map((artist: any) => artist.id),
-				artistNames: track.artists.map((artist: any) => artist.name)
+				artistNames: track.artists.map((artist: any) => artist.name),
+				duration_ms: track.duration_ms
 			}));
 
 		return json(tracks);

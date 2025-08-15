@@ -64,7 +64,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				popularity: item.track.popularity || 0,
 				uri: item.track.uri,
 				artistIds: item.track.artists.map((artist: any) => artist.id),
-				artistNames: item.track.artists.map((artist: any) => artist.name)
+				artistNames: item.track.artists.map((artist: any) => artist.name),
+				duration_ms: item.track.duration_ms
 			}));
 
 		return json(tracks);

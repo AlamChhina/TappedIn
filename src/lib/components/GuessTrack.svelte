@@ -50,12 +50,13 @@
 		tracks: GameTrack[];
 		item?: SearchResult;
 		itemType?: SearchResultType;
+		playbackMode?: 'beginning' | 'random';
 		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, item, itemType, artist, artistName }: Props = $props();
+	let { tracks, item, itemType, playbackMode = 'beginning', artist, artistName }: Props = $props();
 
 	// Derive display properties from the selected item
 	const displayName = $derived(() => {
@@ -122,6 +123,7 @@
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
 	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
+	let randomStartPosition = $state(0); // Random start position in milliseconds (for random mode)
 
 	// Spotify SDK references
 	let player: any = null;
@@ -456,6 +458,19 @@
 		isPaused = false; // Reset pause state
 		errorMessage = null; // Clear any previous errors when starting new round
 
+		// Generate random start position for random playback mode
+		if (playbackMode === 'random') {
+			// Generate a random position between 30 seconds and (track duration - 30 seconds)
+			// This ensures we have at least 30 seconds of content to play from any position
+			const minPosition = 30; // 30 seconds
+			const maxPosition = Math.max(minPosition + 30, (newTrack.duration_ms / 1000) - 30); // At least 30 seconds from end
+			const randomSeconds = minPosition + Math.random() * (maxPosition - minPosition);
+			randomStartPosition = Math.floor(randomSeconds * 1000); // Convert to milliseconds
+			console.log(`Random mode: Starting at ${randomSeconds.toFixed(1)}s (${randomStartPosition}ms) for track duration ${newTrack.duration_ms}ms`);
+		} else {
+			randomStartPosition = 0; // Always start from beginning in beginning mode
+		}
+
 		// Auto-play the new track only if autoPlay is true (subsequent songs)
 		if (autoPlay && playerState === 'ready' && deviceId) {
 			await playFromStart();
@@ -478,11 +493,13 @@
 			console.log('Track:', currentTrack.name);
 			console.log('URI:', currentTrack.uri);
 			console.log('Device ID:', deviceId);
+			console.log('Playback mode:', playbackMode);
+			console.log('Start position:', randomStartPosition, 'ms');
 
 			// Always use a fresh play request with specific URI to avoid queue issues
 			const payload = {
 				uris: [currentTrack.uri],
-				position_ms: 0
+				position_ms: playbackMode === 'random' ? randomStartPosition : 0
 			};
 
 			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
@@ -763,6 +780,20 @@
 			setTimeout(() => {
 				guessInputElement?.focus();
 			}, 100);
+		}
+	});
+
+	// Reset to new song when playback mode changes
+	let previousPlaybackMode = playbackMode;
+	$effect(() => {
+		// Only trigger if playback mode actually changed and we have a current track
+		if (previousPlaybackMode !== playbackMode && currentTrack && playerState === 'ready') {
+			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- starting new round');
+			previousPlaybackMode = playbackMode; // Update the previous mode
+			startRound(false); // Don't auto-play, let user manually start
+		} else {
+			// Update previous mode without triggering action
+			previousPlaybackMode = playbackMode;
 		}
 	});
 </script>

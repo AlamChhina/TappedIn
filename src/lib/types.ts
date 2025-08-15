@@ -5,6 +5,7 @@ export type GameTrack = {
 	popularity: number;
 	artistIds: string[];
 	artistNames: string[];
+	duration_ms: number; // Track duration in milliseconds
 };
 
 export type Artist = {

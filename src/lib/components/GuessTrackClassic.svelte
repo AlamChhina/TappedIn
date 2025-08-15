@@ -51,12 +51,13 @@
 		tracks: GameTrack[];
 		item?: SearchResult;
 		itemType?: SearchResultType;
+		playbackMode?: 'beginning' | 'random';
 		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, item, itemType, artist, artistName }: Props = $props();
+	let { tracks, item, itemType, playbackMode = 'beginning', artist, artistName }: Props = $props();
 
 	// Derive display properties from the selected item
 	const displayName = $derived(() => {
@@ -132,6 +133,7 @@
 	let triesUsed = $state(0); // Number of tries used (0-3, where 0 means initial 1 second)
 	let maxTries = 4; // Maximum number of tries allowed
 	let isPlayingFullSong = $state(false); // Track if playing full song after incorrect guess
+	let randomStartPosition = $state(0); // Random start position in milliseconds (for random mode)
 
 	// Calculate the durations for each try (1, 2, 4, 7, 11 seconds)
 	const tryDurations = [1, 2, 4, 7, 11];
@@ -362,12 +364,15 @@
 					if (!state.paused && state.position > 0 && playbackStartTime === null && !isPlayingFullSong) {
 						playbackStartTime = Date.now();
 						const duration = getCurrentDuration();
-						targetStopPosition = duration * 1000; // Convert to milliseconds
+						const startPosition = playbackMode === 'random' ? randomStartPosition : 0;
+						targetStopPosition = startPosition + (duration * 1000); // Start position + duration in milliseconds
 						
 						console.log('🎵 Playback started at position:', state.position);
+						console.log('🎯 Start position:', startPosition, 'ms');
 						console.log('🎯 Target stop position:', targetStopPosition, 'ms');
+						console.log('🎯 Duration:', duration, 'seconds');
 						
-						timingDebugInfo = `Started, target: ${targetStopPosition}ms`;
+						timingDebugInfo = `Started at ${startPosition}ms, target: ${targetStopPosition}ms`;
 						
 						// Start precise position monitoring (check every 25ms for better precision)
 						if (positionCheckInterval) {
@@ -577,6 +582,19 @@
 		triesUsed = 0;
 		isPlayingFullSong = false;
 		
+		// Generate random start position for random playback mode
+		if (playbackMode === 'random') {
+			// Generate a random position between 30 seconds and (track duration - 30 seconds)
+			// This ensures we have at least 30 seconds of content to play from any position
+			const minPosition = 30; // 30 seconds
+			const maxPosition = Math.max(minPosition + 30, (newTrack.duration_ms / 1000) - 30); // At least 30 seconds from end
+			const randomSeconds = minPosition + Math.random() * (maxPosition - minPosition);
+			randomStartPosition = Math.floor(randomSeconds * 1000); // Convert to milliseconds
+			console.log(`Random mode: Starting at ${randomSeconds.toFixed(1)}s (${randomStartPosition}ms) for track duration ${newTrack.duration_ms}ms`);
+		} else {
+			randomStartPosition = 0; // Always start from beginning in beginning mode
+		}
+		
 		// Reset timing state
 		playbackStartTime = null;
 		timingDebugInfo = '';
@@ -622,16 +640,19 @@
 			}
 
 			const duration = getCurrentDuration();
+			const startPosition = playbackMode === 'random' ? randomStartPosition : 0;
 			console.log(`=== Starting playback (Classic Mode - ${duration} seconds) ===`);
 			console.log('Track:', currentTrack.name);
 			console.log('URI:', currentTrack.uri);
 			console.log('Device ID:', deviceId);
 			console.log('Tries used:', triesUsed);
+			console.log('Playback mode:', playbackMode);
+			console.log('Start position:', startPosition, 'ms');
 
 			// Always use a fresh play request with specific URI to avoid queue issues
 			const payload = {
 				uris: [currentTrack.uri],
-				position_ms: 0
+				position_ms: startPosition
 			};
 
 			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
@@ -1002,6 +1023,20 @@
 			setTimeout(() => {
 				guessInputElement?.focus();
 			}, 100);
+		}
+	});
+
+	// Reset to new song when playback mode changes
+	let previousPlaybackMode = playbackMode;
+	$effect(() => {
+		// Only trigger if playback mode actually changed and we have a current track
+		if (previousPlaybackMode !== playbackMode && currentTrack && playerState === 'ready') {
+			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- starting new round');
+			previousPlaybackMode = playbackMode; // Update the previous mode
+			startRound(false); // Don't auto-play, let user manually start
+		} else {
+			// Update previous mode without triggering action
+			previousPlaybackMode = playbackMode;
 		}
 	});
 </script>

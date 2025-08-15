@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import {
 		Card,
 		CardHeader,
@@ -7,14 +7,23 @@
 		CardContent
 	} from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
+	import { Select } from '$lib/components/ui/select';
 	import { LogIn } from 'lucide-svelte';
 	import ArtistSearch from '$lib/components/ArtistSearch.svelte';
 	import GameModeInfo from '$lib/components/GameModeInfo.svelte';
 
-	export let data;
+	let { data } = $props();
 
-	$: session = data.session;
-	$: profile = data.profile;
+	const session = $derived(data.session);
+	const profile = $derived(data.profile);
+
+	// Playback mode state
+	let playbackMode: 'beginning' | 'random' = $state('beginning');
+
+	const playbackOptions = [
+		{ value: 'beginning', label: 'Beginning' },
+		{ value: 'random', label: 'Random' }
+	];
 
 	const handleSignIn = () => {
 		window.location.href = '/login/spotify';
@@ -59,16 +68,28 @@
 		<div class="mx-auto mt-8 max-w-4xl space-y-8">
 			<!-- Welcome Section -->
 			<div class="text-center">
-				<div class="flex items-center justify-center">
-					<h2 class="h2 text-2xl text-white">
-						Zen Mode
-					</h2>
-					<GameModeInfo mode="zen" />
+				<div class="flex items-center mx-auto w-full max-w-2xl justify-between">
+					<div class="flex items-center">
+						<h2 class="h2 text-2xl text-white">
+							Zen Mode
+						</h2>
+						<GameModeInfo mode="zen" />
+					</div>
+					<!-- Playback Mode Select -->
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-gray-400">Playback:</span>
+						<Select
+							bind:value={playbackMode}
+							options={playbackOptions}
+							placeholder="Select mode..."
+							class="w-32"
+						/>
+					</div>
 				</div>
 			</div>
 
 			<!-- Artist Search Component -->
-			<ArtistSearch gameMode="zen" />
+			<ArtistSearch gameMode="zen" {playbackMode} />
 		</div>
 	</main>
 {/if}

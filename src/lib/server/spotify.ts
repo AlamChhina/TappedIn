@@ -52,6 +52,7 @@ export interface SimplifiedTrack {
 	album?: { id: string; name: string; album_type?: string; release_date?: string };
 	isrc?: string | null;
 	popularity?: number | null;
+	duration_ms: number;
 }
 
 // Utility to handle paginated requests with rate limiting
@@ -248,7 +249,8 @@ function simplifyTrack(track: SpotifyTrack, album?: SpotifyAlbum): SimplifiedTra
 				}
 			: undefined,
 		isrc: null, // Will be populated if we fetch extended track info
-		popularity: track.popularity || null
+		popularity: track.popularity || null,
+		duration_ms: track.duration_ms
 	};
 }
 
