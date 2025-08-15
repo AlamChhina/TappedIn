@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-	<title>Tapped In - Classic</title>
+	<title>Tapped In - Classic Mode</title>
 	<meta
 		name="description"
 		content="Test your music knowledge with Classic mode - guess the song from just the first second!"
