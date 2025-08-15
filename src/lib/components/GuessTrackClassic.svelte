@@ -306,7 +306,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 500));
 
 			player = new window.Spotify.Player({
-				name: 'Guess the Song Game - Classic Mode',
+				name: 'Tapped In 👀 - Classic Mode',
 				getOAuthToken: getOAuthToken,
 				volume: 0.5
 			});
@@ -1031,14 +1031,82 @@
 	$effect(() => {
 		// Only trigger if playback mode actually changed and we have a current track
 		if (previousPlaybackMode !== playbackMode && currentTrack && playerState === 'ready') {
-			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- starting new round');
+			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- fully reloading component');
 			previousPlaybackMode = playbackMode; // Update the previous mode
-			startRound(false); // Don't auto-play, let user manually start
+			
+			// Fully reset the component by reinitializing everything
+			fullComponentReset();
 		} else {
 			// Update previous mode without triggering action
 			previousPlaybackMode = playbackMode;
 		}
 	});
+
+	// Function to fully reset the component when playback mode changes
+	async function fullComponentReset() {
+		console.log('=== Full Component Reset ===');
+		
+		// 1. Disconnect current player if it exists
+		if (player) {
+			try {
+				await player.disconnect();
+				console.log('Player disconnected');
+			} catch (error) {
+				console.log('Player disconnect error (expected):', error);
+			}
+			player = null;
+		}
+		
+		// 2. Reset all player-related state
+		playerState = 'idle';
+		deviceId = null;
+		isTransferring = false;
+		isPlaying = false;
+		isPaused = false;
+		errorMessage = null;
+		sdkLoaded = false;
+		
+		// 3. Reset all game state
+		currentTrack = null;
+		usedTracks.clear();
+		guessStatus = 'idle';
+		guessInput = '';
+		suggestions = [];
+		hoveredSuggestionIndex = null;
+		selectedSuggestionIndex = 0;
+		showAnswer = false;
+		canAdvance = false;
+		streak = 0;
+		retryCount = 0;
+		playbackStartTime = null;
+		timingDebugInfo = '';
+		targetStopPosition = null;
+		selectedTrackFromDropdown = null;
+		currentPlayDuration = 1;
+		triesUsed = 0;
+		isPlayingFullSong = false;
+		randomStartPosition = 0;
+		isFirstSongForArtist = true;
+		hasPlayedFirstSong = false;
+		
+		// 4. Clear any pending timeouts/intervals
+		if (stopTimeoutId) {
+			clearTimeout(stopTimeoutId);
+			stopTimeoutId = null;
+		}
+		if (positionCheckInterval) {
+			clearInterval(positionCheckInterval);
+			positionCheckInterval = null;
+		}
+		
+		// 5. Reinitialize player after a short delay
+		setTimeout(() => {
+			if (tracks.length > 0) {
+				console.log('Reinitializing player with new playback mode:', playbackMode);
+				initializePlayer();
+			}
+		}, 500);
+	}
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
