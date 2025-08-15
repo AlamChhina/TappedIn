@@ -10,6 +10,7 @@ describe('sanitizeArtistTracks', () => {
 		uri: 'spotify:track:track1',
 		artists: [{ id: primaryArtistId, name: 'Test Artist' }],
 		popularity: 50,
+		duration_ms: 180000,
 		...overrides
 	});
 
@@ -70,6 +71,37 @@ describe('sanitizeArtistTracks', () => {
 
 			expect(result).toHaveLength(2);
 			expect(result.map((t) => t.name)).toEqual(['Acoustics 101', 'Normal Song']);
+		});
+
+		it('should exclude tracks with "acapella" variations', () => {
+			const tracks = [
+				createTrack({ id: 'track1', name: 'Song Title - Acapella' }),
+				createTrack({ id: 'track2', name: 'Song Title (Acapella Version)' }),
+				createTrack({ id: 'track3', name: 'Song Title - A Capella' }),
+				createTrack({ id: 'track4', name: 'Song Title (A Capella Mix)' }),
+				createTrack({ id: 'track5', name: 'Acapella Dreams' }), // Should NOT be excluded
+				createTrack({ id: 'track6', name: 'Normal Song' })
+			];
+
+			const result = sanitizeArtistTracks(tracks, primaryArtistId);
+
+			expect(result).toHaveLength(2);
+			expect(result.map((t) => t.name)).toEqual(['Acapella Dreams', 'Normal Song']);
+		});
+
+		it('should exclude tracks with "rock version"', () => {
+			const tracks = [
+				createTrack({ id: 'track1', name: 'Song Title - Rock Version' }),
+				createTrack({ id: 'track2', name: 'Song Title (Rock Version)' }),
+				createTrack({ id: 'track3', name: 'Rock Anthem' }), // Should NOT be excluded
+				createTrack({ id: 'track4', name: 'Rock and Roll' }), // Should NOT be excluded
+				createTrack({ id: 'track5', name: 'Normal Song' })
+			];
+
+			const result = sanitizeArtistTracks(tracks, primaryArtistId);
+
+			expect(result).toHaveLength(3);
+			expect(result.map((t) => t.name)).toEqual(['Rock Anthem', 'Rock and Roll', 'Normal Song']);
 		});
 	});
 

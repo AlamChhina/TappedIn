@@ -226,7 +226,20 @@ function shouldExcludeTrack(title: string): boolean {
 		// Acoustic indicators
 		/\bacoustic\s+(version|mix|track)/,
 		/\(acoustic\)/,
-		/-\s*acoustic/
+		/-\s*acoustic/,
+
+		// Acapella indicators
+		/\bacapella\s+(version|mix|track)/,
+		/\(acapella\)/,
+		/-\s*acapella/,
+		/\ba\s*capella\s+(version|mix|track)/,
+		/\(a\s*capella\)/,
+		/-\s*a\s*capella/,
+
+		// Rock version indicators
+		/\brock\s+(version|mix|track)/,
+		/\(rock\s+version\)/,
+		/-\s*rock\s+version/
 	];
 
 	return exclusionPatterns.some((pattern) => pattern.test(lowerTitle));
