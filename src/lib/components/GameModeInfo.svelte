@@ -44,26 +44,24 @@
 				title: 'Classic Mode',
 				description: 'Test your music knowledge with the ultimate challenge!',
 				features: [
-					'🎵 Hear just the first second of each song',
-					'⚡ Quick-fire guessing action',
-					'🎯 Challenge yourself to identify tracks instantly',
-					'📊 Track your accuracy and speed',
-					'🏆 Perfect for music trivia enthusiasts'
+					'Hear just the first second of each song',
+					'Quick-fire guessing action',
+					'Challenge yourself to identify tracks instantly',
+					'Track your accuracy and speed',
+					'Perfect for music trivia enthusiasts'
 				],
-				tip: 'Pay attention to the opening beats, vocals, or distinctive instruments. Every second counts!'
 			};
 		} else {
 			return {
 				title: 'Zen Mode',
 				description: 'Relax and enjoy music while you guess at your own pace.',
 				features: [
-					'🎶 Full songs play from start to finish',
-					'🧘 No time pressure - take your time',
-					'💭 Think and analyze the complete track',
-					'🎧 Enjoy the full musical experience',
-					'🌱 Perfect for discovering new music'
+					'Full songs play from start to finish',
+					'No time pressure - take your time',
+					'Think and analyze the complete track',
+					'Enjoy the full musical experience',
+					'Perfect for discovering new music'
 				],
-				tip: 'Let the music flow and take in all the details. Sometimes the answer becomes clear as the song progresses!'
 			};
 		}
 	};
@@ -76,7 +74,7 @@
 	variant="ghost"
 	size="sm"
 	onclick={openInfoModal}
-	class="ml-2 h-8 w-8 p-0 text-gray-400 flex items-center justify-center hover:text-gray-300 hover:bg-transparent cursor-pointer transition-colors"
+	class="ml-1 h-8 w-8 p-0 text-white flex items-center justify-center hover:text-gray-300 hover:bg-transparent cursor-pointer transition-colors"
 	title="Game mode information"
 >
 	<Info size={16} />
