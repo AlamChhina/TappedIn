@@ -110,6 +110,17 @@
 			{/each}
 		</div>
 		
+		<!-- Spotify Device Notice -->
+		<div class="bg-green-900/30 border border-green-600/50 rounded-lg p-3">
+			<div class="flex items-center gap-3">
+					<img src="/spotify logo/Green.svg" alt="Spotify" class="w-8 h-8" />
+			
+				<p class="text-sm text-green-200">
+					<strong>Important:</strong> Keep Spotify open on a device (web player, app, or phone) to enable music playback.
+				</p>
+			</div>
+		</div>
+		
 		<div class="flex justify-end">
 			<Button onclick={() => showModal = false} class="bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-0">
 				Got it

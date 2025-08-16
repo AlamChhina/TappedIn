@@ -54,7 +54,7 @@
 						class="w-full font-medium text-black transition-all duration-200 hover:scale-[1.02] focus:scale-[1.02] focus:ring-0 focus:outline-none"
 						style="--spotify: #1DB954; background-color: var(--spotify); border-color: var(--spotify);"
 					>
-						<img src="/spotify logo/Black.svg" alt="" class="mr-2 h-6 w-6" />
+						<img src="/spotify logo/Black.svg" alt="Spotify logo" class="mr-2 h-6 w-6" />
 						Sign in with Spotify
 					</Button>
 				</CardContent>
