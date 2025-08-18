@@ -50,3 +50,37 @@ export type SpotifySDKToken = {
 
 export type PlayerState = 'idle' | 'connecting' | 'ready' | 'error';
 export type GuessStatus = 'idle' | 'correct' | 'incorrect';
+
+// History Types
+export type GameMode = 'classic' | 'zen';
+export type PlaybackMode = 'beginning' | 'random';
+
+export type GuessResult = {
+	id: string;
+	songName: string;
+	artistNames: string[];
+	isCorrect: boolean;
+	timestamp: Date;
+	// Classic mode specific
+	triesUsed?: number; // Number of tries for classic mode (0-3)
+	maxTries?: number; // Max tries available (typically 4)
+};
+
+export type GameSession = {
+	id: string;
+	mode: GameMode;
+	playbackMode: PlaybackMode;
+	itemName: string; // Artist, album, or playlist name
+	itemType: SearchResultType;
+	itemId: string;
+	itemImage?: string; // Add artwork URL
+	startTime: Date;
+	endTime?: Date;
+	guesses: GuessResult[];
+};
+
+export type SessionSummary = {
+	correct: number;
+	total: number;
+	percentage: number;
+};

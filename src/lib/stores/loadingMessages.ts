@@ -22,7 +22,6 @@ const ARTIST_MESSAGES = [
 
 const LARGE_COLLECTION_MESSAGES = [
 	'This is a big collection - please be patient!',
-	'Large catalogs take a bit longer to process...',
 	'This might take a moment for such a large collection...',
 ];
 

@@ -4,10 +4,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
 	import GuessTrackClassic from './GuessTrackClassic.svelte';
+	import GameHistory from './GameHistory.svelte';
 	import LoadingMessages from './LoadingMessages.svelte';
-	import type { GameTrack, SearchResult, SearchResultType } from '$lib/types';
+	import type { GameTrack, SearchResult, SearchResultType, GameSession } from '$lib/types';
 	import { parseSpotifyUrl, isSpotifyUrl } from '$lib/utils/spotifyUrl';
 	import { loadingMessages, type ItemType } from '$lib/stores/loadingMessages';
+	import { gameHistory } from '$lib/stores/gameHistory';
 
 	// Props
 	interface Props {
@@ -31,6 +33,19 @@
 	let searchInputRef = $state<HTMLInputElement | null>(null);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let selectedIndex = $state(-1);
+
+	// Subscribe to game history for display
+	let history = $state<GameSession[]>([]);
+	let currentSessionId = $state<string | null>(null);
+	
+	gameHistory.subscribe(value => {
+		history = value;
+	});
+
+	// Handle session changes from GuessTrack components
+	function handleSessionChange(sessionId: string | null) {
+		currentSessionId = sessionId;
+	}
 
 	// Debounced search function
 	function debounceSearch(query: string) {
@@ -423,13 +438,16 @@
 
 	<!-- Tracks List -->
 	{#if tracks.length > 0 && selectedItem && selectedType}
-		<div class="space-y-4">
+		<div class="space-y-6">
 			<!-- Guess Track Component -->
 			{#if gameMode === 'classic'}
-				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} />
+				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} />
 			{:else}
-				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} />
+				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} />
 			{/if}
+
+			<!-- Game History Component -->
+			<GameHistory {history} {currentSessionId} />
 		</div>
 	{:else if selectedItem && selectedType && !isFetchingTracks && !tracksError}
 		<div class="p-8 text-center text-gray-400">
@@ -437,5 +455,8 @@
 			<p>No tracks found for {selectedItem.name} that meet the criteria.</p>
 			<p class="mt-2 text-sm">Looking for tracks over 30 seconds that can be played in the game.</p>
 		</div>
+	{:else if history.length > 0}
+		<!-- Show history even when no current game is active -->
+		<GameHistory {history} {currentSessionId} />
 	{/if}
 </div>

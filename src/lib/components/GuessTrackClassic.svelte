@@ -26,6 +26,7 @@
 		SearchResult,
 		SearchResultType
 	} from '$lib/types';
+	import { gameHistory } from '$lib/stores/gameHistory';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -52,12 +53,13 @@
 		item?: SearchResult;
 		itemType?: SearchResultType;
 		playbackMode?: 'beginning' | 'random';
+		onSessionChange?: (sessionId: string | null) => void;
 		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, item, itemType, playbackMode = 'beginning', artist, artistName }: Props = $props();
+	let { tracks, item, itemType, playbackMode = 'beginning', onSessionChange, artist, artistName }: Props = $props();
 
 	// Derive display properties from the selected item
 	const displayName = $derived(() => {
@@ -134,6 +136,47 @@
 	let maxTries = 4; // Maximum number of tries allowed
 	let isPlayingFullSong = $state(false); // Track if playing full song after incorrect guess
 	let randomStartPosition = $state(0); // Random start position in milliseconds (for random mode)
+
+	// History tracking
+	let currentSessionId = $state<string | null>(null);
+
+	// Ensure session is set up when we have all the needed data
+	function ensureSession() {
+		if (!item || !itemType) return;
+
+		gameHistory.subscribe((history) => {
+			const shouldStart = gameHistory.shouldStartNewSession(
+				currentSessionId,
+				'classic', // This is the classic mode component
+				playbackMode,
+				item.id,
+				history
+			);
+
+			if (shouldStart) {
+				// End previous session if it exists
+				if (currentSessionId) {
+					gameHistory.endSession(currentSessionId);
+				}
+
+				// Get the image URL from the item
+				const itemImage = item.images && item.images.length > 0 ? item.images[0].url : undefined;
+
+				// Start new session
+				currentSessionId = gameHistory.startSession(
+					'classic',
+					playbackMode,
+					item.name,
+					itemType,
+					item.id,
+					itemImage
+				);
+
+				// Notify parent component about session change
+				onSessionChange?.(currentSessionId);
+			}
+		})();
+	}
 
 	// Calculate the durations for each try (1, 2, 4, 7, 11 seconds)
 	const tryDurations = [1, 2, 4, 7, 11];
@@ -877,6 +920,18 @@
 			streak = 0; // Reset streak on incorrect guess
 		}
 
+		// Track the guess in history with classic mode details
+		if (currentSessionId && currentTrack) {
+			gameHistory.addGuess(
+				currentSessionId,
+				currentTrack.name,
+				currentTrack.artistNames,
+				isCorrect,
+				triesUsed, // Number of tries used for classic mode
+				maxTries   // Max tries available
+			);
+		}
+
 		// Clear the selected track from dropdown for next guess
 		selectedTrackFromDropdown = null;
 
@@ -900,6 +955,18 @@
 		guessStatus = 'incorrect';
 		showAnswer = true;
 		streak = 0; // Reset streak on give up
+
+		// Track the guess in history with classic mode details
+		if (currentSessionId && currentTrack) {
+			gameHistory.addGuess(
+				currentSessionId,
+				currentTrack.name,
+				currentTrack.artistNames,
+				false, // incorrect
+				triesUsed, // Number of tries used for classic mode
+				maxTries   // Max tries available
+			);
+		}
 
 		// Clear the selected track from dropdown
 		selectedTrackFromDropdown = null;
@@ -1034,11 +1101,21 @@
 			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- fully reloading component');
 			previousPlaybackMode = playbackMode; // Update the previous mode
 			
+			// Ensure session is updated for new playback mode
+			ensureSession();
+			
 			// Fully reset the component by reinitializing everything
 			fullComponentReset();
 		} else {
 			// Update previous mode without triggering action
 			previousPlaybackMode = playbackMode;
+		}
+	});
+
+	// Ensure session when item changes
+	$effect(() => {
+		if (item && itemType) {
+			ensureSession();
 		}
 	});
 
