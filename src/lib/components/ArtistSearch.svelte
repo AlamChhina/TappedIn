@@ -39,6 +39,7 @@
 	let currentSessionId = $state<string | null>(null);
 	
 	gameHistory.subscribe(value => {
+		console.log('ArtistSearch - History updated:', value);
 		history = value;
 	});
 

@@ -146,12 +146,18 @@ function generateGuessId(): string {
 
 function loadHistoryFromStorage(): GameSession[] {
 	try {
+		console.log('Loading history from storage...');
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) return [];
+		console.log('Stored data:', stored);
+		if (!stored) {
+			console.log('No stored data found');
+			return [];
+		}
 
 		const parsed = JSON.parse(stored);
+		console.log('Parsed data:', parsed);
 		// Convert date strings back to Date objects
-		return parsed.map((session: any) => ({
+		const result = parsed.map((session: any) => ({
 			...session,
 			startTime: new Date(session.startTime),
 			endTime: session.endTime ? new Date(session.endTime) : undefined,
@@ -160,6 +166,8 @@ function loadHistoryFromStorage(): GameSession[] {
 				timestamp: new Date(guess.timestamp)
 			}))
 		}));
+		console.log('Converted result:', result);
+		return result;
 	} catch (error) {
 		console.error('Failed to load history from storage:', error);
 		return [];

@@ -14,17 +14,30 @@
 		Play,
 		Shuffle,
 		ChevronDown,
-		ChevronUp
+		ChevronUp,
+		History
 	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { goto } from '$app/navigation';
 	import type { GameSession, SessionSummary, GameMode, PlaybackMode, SearchResultType } from '$lib/types';
 
 	// Props
 	interface Props {
 		history: GameSession[];
 		currentSessionId?: string | null;
+		showAll?: boolean;
 	}
 
-	let { history, currentSessionId }: Props = $props();
+	let { history, currentSessionId, showAll = false }: Props = $props();
+
+	// Debug logging
+	$effect(() => {
+		console.log('GameHistory - Received history:', history);
+		console.log('GameHistory - History length:', history.length);
+		console.log('GameHistory - showAll:', showAll);
+		console.log('GameHistory - displaySessions:', displaySessions);
+		console.log('GameHistory - displaySessions length:', displaySessions.length);
+	});
 
 	// State for expanded sessions
 	let expandedSessions = $state<Set<string>>(new Set());
@@ -85,7 +98,13 @@
 	}
 
 	// Filter out sessions with no guesses for cleaner display
-	const sessionsWithGuesses = $derived(history.filter(session => session.guesses.length > 0));
+	const sessionsWithGuesses = $derived(() => {
+		const filtered = history.filter(session => session.guesses.length > 0);
+		return showAll ? filtered : filtered.slice(0, 10);
+	});
+
+	// Computed value for filtered sessions
+	const displaySessions = $derived(sessionsWithGuesses());
 
 	// Helper functions for accordion
 	function toggleSession(sessionId: string) {
@@ -111,7 +130,14 @@
 	}
 </script>
 
-{#if sessionsWithGuesses.length > 0}
+<!-- Debug Section (remove in production)
+<div class="mb-4 p-2 border border-yellow-500 text-yellow-400 text-xs">
+	<div>Total history items: {history.length}</div>
+	<div>Sessions with guesses: {displaySessions.length}</div>
+	<div>Show all: {showAll}</div>
+</div> -->
+
+{#if displaySessions.length > 0}
 	<div class="mx-auto w-full max-w-2xl space-y-4">
 		<div 
 			class="rounded-lg border p-4"
@@ -123,7 +149,7 @@
 			</div>
 
 			<div class="space-y-4">
-				{#each sessionsWithGuesses as session, index (session.id)}
+				{#each displaySessions as session, index (session.id)}
 					{@const summary = getSessionSummary(session)}
 					{@const TypeIcon = getTypeIcon(session.itemType)}
 					{@const ModeIcon = getModeIcon(session.mode)}
@@ -267,9 +293,23 @@
 				{/each}
 			</div>
 
-			{#if sessionsWithGuesses.length > 10}
+			<!-- Show Full History Button -->
+			{#if !showAll && history.filter(session => session.guesses.length > 0).length > 10}
+				<div class="mt-6 text-center">
+					<Button 
+						onclick={() => goto('/history')}
+						variant="outline"
+						class="flex items-center gap-2"
+					>
+						<History class="h-4 w-4" />
+						Show Full History ({history.filter(session => session.guesses.length > 0).length} sessions)
+					</Button>
+				</div>
+			{/if}
+
+			{#if displaySessions.length > 10 && !showAll}
 				<div class="mt-4 text-center text-xs text-gray-400">
-					Showing latest {Math.min(10, sessionsWithGuesses.length)} sessions
+					Showing latest 10 of {history.filter(session => session.guesses.length > 0).length} sessions
 				</div>
 			{/if}
 		</div>
