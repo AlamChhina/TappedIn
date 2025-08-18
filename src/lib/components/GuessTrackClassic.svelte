@@ -1325,7 +1325,7 @@
 
 		<!-- Current Track Info -->
 		{#if currentTrack}
-			<div class="mb-6">
+			<div>
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-4">
 					{#if showAnswer && isPlayingFullSong}
@@ -1406,7 +1406,7 @@
 					</Button>
 				{/if}
 			</div>				<!-- Guess Input -->
-				<div class="relative mb-4">
+				<div class="relative {showAnswer ? 'mb-4' : ''}">
 					<input
 						bind:this={guessInputElement}
 						bind:value={guessInput}
@@ -1450,21 +1450,6 @@
 					{/if}
 				</div>
 
-				<!-- Guess Status -->
-				<div class="mb-4 flex items-center gap-4">
-					{#if guessStatus === 'correct'}
-						<div class="flex items-center gap-2 text-green-400">
-							<CheckCircle class="h-5 w-5" />
-							<span class="font-medium">Correct!</span>
-						</div>
-					{:else if guessStatus === 'incorrect'}
-						<div class="flex items-center gap-2 text-red-400">
-							<XCircle class="h-5 w-5" />
-							<span class="font-medium">Incorrect</span>
-						</div>
-					{/if}
-				</div>
-
 				<!-- Show Answer -->
 				{#if showAnswer}
 					<div
@@ -1476,6 +1461,18 @@
 								<div class="font-semibold text-white">{currentTrack.name}</div>
 								<div class="text-sm text-gray-300">by {currentTrack.artistNames.join(', ')}</div>
 							</div>
+							<!-- Guess Status -->
+							{#if guessStatus === 'correct'}
+								<div class="flex items-center gap-2 text-green-400">
+									<CheckCircle class="h-5 w-5" />
+									<span class="font-medium">Correct!</span>
+								</div>
+							{:else if guessStatus === 'incorrect'}
+								<div class="flex items-center gap-2 text-red-400">
+									<XCircle class="h-5 w-5" />
+									<span class="font-medium">Incorrect</span>
+								</div>
+							{/if}
 						</div>
 					</div>
 				{/if}

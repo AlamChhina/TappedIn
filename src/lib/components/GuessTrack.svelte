@@ -1038,7 +1038,7 @@
 
 		<!-- Current Track Info -->
 		{#if currentTrack}
-			<div class="mb-6">
+			<div>
 				<div class="mb-4 flex items-center justify-between">
 					<div class="flex items-center gap-4">
 						<Button
@@ -1093,7 +1093,7 @@
 				</div>
 
 				<!-- Guess Input -->
-				<div class="relative mb-4">
+				<div class="relative {showAnswer ? 'mb-4' : ''}">
 					<input
 						bind:this={guessInputElement}
 						bind:value={guessInput}
@@ -1137,25 +1137,6 @@
 					{/if}
 				</div>
 
-				<!-- Guess Status -->
-				<div class="mb-4 flex items-center gap-4">
-					{#if guessStatus === 'correct'}
-						<div class="text-spotify-green flex items-center gap-2">
-							<CheckCircle class="h-5 w-5" />
-							<span>Correct!</span>
-						</div>
-					{:else if guessStatus === 'incorrect'}
-						<div class="flex items-center gap-2 text-red-400">
-							<XCircle class="h-5 w-5" />
-							<span>Incorrect!</span>
-						</div>
-					{/if}
-					<!-- //mobile button, will add later -->
-					<!-- {#if !showAnswer && guessInput.trim()}
-						<Button onclick={submitGuess} size="sm">Submit Guess</Button>
-					{/if} -->
-				</div>
-
 				<!-- Show Answer -->
 				{#if showAnswer}
 					<div
@@ -1164,13 +1145,24 @@
 							? 'border-color: #1DB954; background-color: rgba(29, 185, 84, 0.1);'
 							: 'border-color: rgb(30 64 175); background-color: rgba(30, 64, 175, 0.1);'}
 					>
-						<p
-							class="font-medium {guessStatus === 'correct'
-								? 'text-spotify-green'
-								: 'text-blue-400'}"
-						>
-							"{currentTrack.name}" by {currentTrack.artistNames.join(', ')}
-						</p>
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="font-semibold text-white">{currentTrack.name}</div>
+								<div class="text-sm text-gray-300">by {currentTrack.artistNames.join(', ')}</div>
+							</div>
+							<!-- Guess Status -->
+							{#if guessStatus === 'correct'}
+								<div class="text-spotify-green flex items-center gap-2">
+									<CheckCircle class="h-5 w-5" />
+									<span>Correct!</span>
+								</div>
+							{:else if guessStatus === 'incorrect'}
+								<div class="flex items-center gap-2 text-red-400">
+									<XCircle class="h-5 w-5" />
+									<span>Incorrect!</span>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{/if}
 
