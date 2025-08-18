@@ -138,7 +138,7 @@
 </div> -->
 
 {#if displaySessions.length > 0}
-	<div class="mx-auto w-full max-w-2xl space-y-4">
+	<div class="mx-auto w-full max-w-2xl space-y-4 mt-12">
 		<div 
 			class="rounded-lg border p-4"
 			style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);"
