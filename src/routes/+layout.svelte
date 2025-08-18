@@ -130,4 +130,9 @@
 
 	<!-- Page Content -->
 	{@render children?.()}
+	
+	<!-- Footer -->
+	<footer class="p-4 text-center">
+		<p class="text-xs text-gray-500">created by Alam Chhina</p>
+	</footer>
 </div>
