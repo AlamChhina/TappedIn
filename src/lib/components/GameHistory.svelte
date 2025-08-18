@@ -298,8 +298,7 @@
 				<div class="mt-6 text-center">
 					<Button 
 						onclick={() => goto('/history')}
-						variant="outline"
-						class="flex items-center gap-2"
+						class="flex items-center gap-2 cursor-pointer"
 					>
 						<History class="h-4 w-4" />
 						Show Full History ({history.filter(session => session.guesses.length > 0).length} sessions)
