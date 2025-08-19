@@ -381,7 +381,7 @@
 				bind:ref={searchInputRef}
 				bind:value={searchQuery}
 				placeholder="Search for artists, albums, or playlists..."
-				class="focus-visible:ring-spotify-green focus:border-spotify-green border-[#282828] bg-[#282828] pr-10 pl-10 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
+				class="focus-visible:ring-spotify-green focus:border-spotify-green border-[#282828] bg-[#282828] pr-10 pl-10 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] [font-size:16px]"
 				onInput={handleInput}
 				onKeydown={handleKeydown}
 				onFocus={() => {

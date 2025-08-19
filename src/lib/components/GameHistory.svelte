@@ -160,21 +160,21 @@
 						style="border-color: #404040; background-color: rgba(24, 24, 24, 0.8);"
 					>
 						<!-- Session Header -->
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
+						<div class="flex items-start justify-between gap-3">
+							<div class="flex items-start gap-3 min-w-0 flex-1">
 								<!-- Item Image -->
 								{#if session.itemImage}
 									<img
 										src={session.itemImage}
 										alt={session.itemName}
-										class="h-10 w-10 border-2 object-cover {session.itemType === 'artist'
+										class="h-10 w-10 border-2 object-cover flex-shrink-0 {session.itemType === 'artist'
 											? 'rounded-full'
 											: 'rounded-sm'}"
 										style="border-color: #282828;"
 									/>
 								{:else}
 									<div
-										class="flex h-10 w-10 items-center justify-center border-2 {session.itemType === 'artist'
+										class="flex h-10 w-10 items-center justify-center border-2 flex-shrink-0 {session.itemType === 'artist'
 											? 'rounded-full'
 											: 'rounded-sm'}"
 										style="background-color: #282828; border-color: #181818;"
@@ -183,24 +183,24 @@
 									</div>
 								{/if}
 
-								<div class="flex items-center gap-3">
-									<span class="font-medium text-white">{session.itemName}</span>
+								<div class="min-w-0 flex-1">
+									<div class="font-medium text-white truncate">{session.itemName}</div>
 									
-									<div class="flex items-center gap-2 text-xs">
+									<div class="flex items-center gap-2 text-xs mt-1">
 										<div class="flex items-center gap-1 text-gray-400">
-											<ModeIcon class="h-3 w-3" />
+											<ModeIcon class="h-3 w-3 flex-shrink-0" />
 											<span class="capitalize">{session.mode}</span>
 										</div>
 										<div class="text-gray-600">•</div>
 										<div class="flex items-center gap-1 text-gray-400">
-											<PlaybackIcon class="h-3 w-3" />
+											<PlaybackIcon class="h-3 w-3 flex-shrink-0" />
 											<span class="capitalize">{session.playbackMode}</span>
 										</div>
 									</div>
 								</div>
 							</div>
 
-							<div class="text-xs text-gray-400">
+							<div class="text-xs text-gray-400 flex-shrink-0">
 								{formatTimeAgo(session.startTime)}
 							</div>
 						</div>

@@ -76,13 +76,13 @@
 	</main>
 {:else}
 	<!-- Signed-in state: Show welcome message and artist search -->
-	<main class="min-h-[calc(100vh-80px)] p-4">
-		<div class="mx-auto mt-8 max-w-4xl space-y-8">
+	<main class="min-h-[calc(100vh-80px)] p-4 sm:p-6">
+		<div class="mx-auto mt-4 sm:mt-8 max-w-4xl space-y-6 sm:space-y-8">
 			<!-- Welcome Section -->
 			<div class="text-center">
-				<div class="flex items-center mx-auto w-full max-w-2xl justify-between">
+				<div class="flex items-center mx-auto w-full max-w-2xl justify-between flex-col sm:flex-row gap-4 sm:gap-0">
 					<div class="flex items-center">
-						<h2 class="h2 text-2xl text-white">
+						<h2 class="h2 text-xl sm:text-2xl text-white">
 							Classic Mode
 						</h2>
 						<GameModeInfo mode="classic" />
