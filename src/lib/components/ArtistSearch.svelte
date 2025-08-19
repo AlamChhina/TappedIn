@@ -15,9 +15,10 @@
 	interface Props {
 		gameMode?: 'classic' | 'zen';
 		playbackMode?: 'beginning' | 'random';
+		onPlayerStateChange?: (isLoading: boolean) => void;
 	}
 
-	let { gameMode = 'zen', playbackMode = 'beginning' }: Props = $props();
+	let { gameMode = 'zen', playbackMode = 'beginning', onPlayerStateChange }: Props = $props();
 
 	// Component state
 	let searchQuery = $state('');
@@ -46,6 +47,11 @@
 	// Handle session changes from GuessTrack components
 	function handleSessionChange(sessionId: string | null) {
 		currentSessionId = sessionId;
+	}
+
+	// Handle player state changes from GuessTrack components
+	function handlePlayerStateChange(isLoading: boolean) {
+		onPlayerStateChange?.(isLoading);
 	}
 
 	// Debounced search function
@@ -442,9 +448,9 @@
 		<div class="space-y-6">
 			<!-- Guess Track Component -->
 			{#if gameMode === 'classic'}
-				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} />
+				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} />
 			{:else}
-				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} />
+				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} />
 			{/if}
 
 			<!-- Game History Component -->

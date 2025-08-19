@@ -53,12 +53,13 @@
 		itemType?: SearchResultType;
 		playbackMode?: 'beginning' | 'random';
 		onSessionChange?: (sessionId: string | null) => void;
+		onPlayerStateChange?: (isLoading: boolean) => void;
 		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, item, itemType, playbackMode = 'beginning', onSessionChange, artist, artistName }: Props = $props();
+	let { tracks, item, itemType, playbackMode = 'beginning', onSessionChange, onPlayerStateChange, artist, artistName }: Props = $props();
 
 	// Derive display properties from the selected item
 	const displayName = $derived(() => {
@@ -870,6 +871,12 @@
 		if (item && itemType) {
 			ensureSession();
 		}
+	});
+
+	// Notify parent of player loading state changes
+	$effect(() => {
+		const isLoading = playerState === 'idle' || playerState === 'connecting' || isTransferring;
+		onPlayerStateChange?.(isLoading);
 	});
 
 	// Function to fully reset the component when playback mode changes

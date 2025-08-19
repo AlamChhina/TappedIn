@@ -19,6 +19,7 @@
 
 	// Playback mode state
 	let playbackMode: 'beginning' | 'random' = $state('beginning');
+	let isPlayerLoading = $state(false);
 
 	const playbackOptions = [
 		{ value: 'beginning', label: 'Beginning' },
@@ -28,6 +29,11 @@
 	const handleSignIn = () => {
 		window.location.href = '/login/spotify';
 	};
+
+	// Handle player state changes from ArtistSearch component
+	function handlePlayerStateChange(isLoading: boolean) {
+		isPlayerLoading = isLoading;
+	}
 </script>
 
 <svelte:head>
@@ -83,13 +89,14 @@
 							options={playbackOptions}
 							placeholder="Select mode..."
 							class="w-32"
+							disabled={isPlayerLoading}
 						/>
 					</div>
 				</div>
 			</div>
 
 			<!-- Artist Search Component -->
-			<ArtistSearch gameMode="classic" {playbackMode} />
+			<ArtistSearch gameMode="classic" {playbackMode} onPlayerStateChange={handlePlayerStateChange} />
 		</div>
 	</main>
 {/if}
