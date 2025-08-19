@@ -140,7 +140,7 @@
 {#if displaySessions.length > 0}
 	<div class="mx-auto w-full max-w-2xl space-y-4 mt-12">
 		<div 
-			class="rounded-lg border p-4"
+			class="rounded-lg border p-3 sm:p-4"
 			style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);"
 		>
 			<div class="mb-4 flex items-center gap-2">
@@ -156,7 +156,7 @@
 					{@const PlaybackIcon = getPlaybackIcon(session.playbackMode)}
 					
 					<div 
-						class="rounded-lg border p-4 space-y-3"
+						class="rounded-lg border p-3 sm:p-4 space-y-3"
 						style="border-color: #404040; background-color: rgba(24, 24, 24, 0.8);"
 					>
 						<!-- Session Header -->

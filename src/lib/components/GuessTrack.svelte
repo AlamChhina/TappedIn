@@ -940,7 +940,7 @@
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
 	<div
-		class="rounded-lg border p-6"
+		class="rounded-lg border p-4 sm:p-6"
 		style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);"
 	>
 		<div class="mb-4 flex items-center justify-between">
@@ -966,9 +966,13 @@
 					</div>
 				{/if}
 
-				<h3 class="text-xl font-semibold text-white">
-					{headerText()}
-				</h3>
+				<!-- Header text -->
+				<div>
+					<!-- Full header text in small font -->
+					<div class="text-white font-medium text-sm">
+						{headerText()}
+					</div>
+				</div>
 			</div>
 
 			<!-- Streak Counter -->
@@ -996,8 +1000,8 @@
 			{:else if playerState === 'connecting'}
 				<div class="flex items-center gap-4 text-blue-400">
 					<div class="flex items-center gap-2">
-						<Loader2 class="h-4 w-4 animate-spin" />
-						<span>Connecting to Spotify...</span>
+						<Loader2 class="h-3 w-3 animate-spin" />
+						<span class="text-xs sm:text-sm">Connecting to Spotify...</span>
 					</div>
 					<Button
 						onclick={() => {
@@ -1005,7 +1009,8 @@
 							initializePlayer();
 						}}
 						size="sm"
-						variant="outline">Retry Connection</Button
+						variant="outline"
+						class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
 					>
 				</div>
 			{:else if playerState === 'ready'}
@@ -1020,7 +1025,7 @@
 				<div class="flex items-center gap-4 text-red-400">
 					<div class="flex items-center gap-2">
 						<AlertCircle class="h-4 w-4" />
-						<span>Connection failed</span>
+						<span class="text-xs sm:text-sm">Connection failed</span>
 					</div>
 					<Button
 						onclick={() => {
@@ -1028,7 +1033,8 @@
 							initializePlayer();
 						}}
 						size="sm"
-						variant="outline">Retry Connection</Button
+						variant="outline"
+						class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
 					>
 				</div>
 			{/if}
@@ -1055,11 +1061,11 @@
 		{#if currentTrack}
 			<div>
 				<div class="mb-4 flex items-center justify-between">
-					<div class="flex items-center gap-4">
+					<div class="flex items-center gap-2 sm:gap-3 flex-wrap">
 						<Button
 							onclick={playFromStart}
 							disabled={playerState !== 'ready' || !deviceId || isPlaying}
-							class="flex items-center gap-2"
+							class="flex items-center gap-1 sm:gap-2"
 						>
 							{#if isPlaying}
 								<Loader2 class="h-4 w-4 animate-spin" />
@@ -1068,7 +1074,6 @@
 							{:else}
 								<RotateCcw class="h-4 w-4" />
 							{/if}
-							{isFirstSongForArtist ? 'Play' : 'Replay'}
 						</Button>
 
 						{#if !isFirstSongForArtist}
@@ -1076,19 +1081,19 @@
 								<Button
 									onclick={resumeTrack}
 									disabled={playerState !== 'ready' || !deviceId}
-									class="flex items-center gap-2"
+									class="flex items-center gap-1 sm:gap-2"
 								>
 									<Play class="h-4 w-4" />
-									Resume
+									<span class="hidden sm:inline">Resume</span>
 								</Button>
 							{:else}
 								<Button
 									onclick={pauseTrack}
 									disabled={playerState !== 'ready' || !deviceId}
-									class="flex items-center gap-2"
+									class="flex items-center gap-1 sm:gap-2"
 								>
 									<Pause class="h-4 w-4" />
-									Pause
+									<span class="hidden sm:inline">Pause</span>
 								</Button>
 							{/if}
 						{/if}
@@ -1099,10 +1104,10 @@
 						<Button
 							onclick={giveUp}
 							disabled={playerState !== 'ready'}
-							class="flex items-center gap-2"
+							class="flex items-center gap-1 sm:gap-2"
 						>
 							<HeartCrack class="h-4 w-4" />
-							Give Up
+							<span class="hidden sm:inline">Give Up</span>
 						</Button>
 					{/if}
 				</div>
@@ -1188,7 +1193,7 @@
 						class="w-full {canAdvance ? '' : 'cursor-not-allowed opacity-50'}"
 						disabled={!canAdvance}
 					>
-						Next Song {canAdvance ? '(Enter)' : ''}
+						Next Song <span class="hidden sm:inline">{canAdvance ? '(Enter)' : ''}</span>
 					</Button>
 				{/if}
 			</div>
