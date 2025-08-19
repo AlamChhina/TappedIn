@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input } from '$lib/components/ui/input';
-	import { Search, Music, Loader2, Album, ListMusic, ExternalLink } from 'lucide-svelte';
+	import { Search, Music, Loader2, Album, ListMusic, ExternalLink, X } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import GuessTrack from './GuessTrack.svelte';
 	import GuessTrackClassic from './GuessTrackClassic.svelte';
@@ -16,9 +16,10 @@
 		gameMode?: 'classic' | 'zen';
 		playbackMode?: 'beginning' | 'random';
 		onPlayerStateChange?: (isLoading: boolean) => void;
+		onGameActiveChange?: (isActive: boolean) => void;
 	}
 
-	let { gameMode = 'zen', playbackMode = 'beginning', onPlayerStateChange }: Props = $props();
+	let { gameMode = 'zen', playbackMode = 'beginning', onPlayerStateChange, onGameActiveChange }: Props = $props();
 
 	// Component state
 	let searchQuery = $state('');
@@ -52,6 +53,25 @@
 	// Handle player state changes from GuessTrack components
 	function handlePlayerStateChange(isLoading: boolean) {
 		onPlayerStateChange?.(isLoading);
+	}
+
+	// Handle game active state changes from GuessTrack components
+	function handleGameActiveChange(isActive: boolean) {
+		onGameActiveChange?.(isActive);
+	}
+
+	// Clear selection and reset state
+	function clearSelection() {
+		searchQuery = '';
+		searchResults = [];
+		showDropdown = false;
+		selectedItem = null;
+		selectedType = null;
+		tracks = [];
+		searchError = null;
+		tracksError = null;
+		// Notify parent that the game is no longer active
+		onGameActiveChange?.(false);
 	}
 
 	// Debounced search function
@@ -344,6 +364,12 @@
 		loadingMessages.stopLoading();
 		clearTimeout(debounceTimer);
 	});
+
+	// Effect to notify parent when game state changes
+	$effect(() => {
+		const hasActiveGame = tracks.length > 0 && !!selectedItem && !!selectedType;
+		onGameActiveChange?.(hasActiveGame);
+	});
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
@@ -368,6 +394,14 @@
 				<Loader2
 					class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 transform animate-spin text-gray-400"
 				/>
+			{:else if selectedItem && selectedType}
+				<button
+					onclick={clearSelection}
+					class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 transform text-gray-400 hover:text-red-400 transition-colors"
+					aria-label="Clear selection"
+				>
+					<X class="h-5 w-5" />
+				</button>
 			{/if}
 		</div>
 
@@ -448,9 +482,9 @@
 		<div class="space-y-6">
 			<!-- Guess Track Component -->
 			{#if gameMode === 'classic'}
-				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} />
+				<GuessTrackClassic {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} onGameActiveChange={handleGameActiveChange} />
 			{:else}
-				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} />
+				<GuessTrack {tracks} item={selectedItem} itemType={selectedType} {playbackMode} onSessionChange={handleSessionChange} onPlayerStateChange={handlePlayerStateChange} onGameActiveChange={handleGameActiveChange} />
 			{/if}
 
 			<!-- Game History Component -->

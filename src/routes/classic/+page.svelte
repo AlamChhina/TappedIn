@@ -20,6 +20,7 @@
 	// Playback mode state
 	let playbackMode: 'beginning' | 'random' = $state('beginning');
 	let isPlayerLoading = $state(false);
+	let isGameActive = $state(false);
 
 	const playbackOptions = [
 		{ value: 'beginning', label: 'Beginning' },
@@ -33,6 +34,11 @@
 	// Handle player state changes from ArtistSearch component
 	function handlePlayerStateChange(isLoading: boolean) {
 		isPlayerLoading = isLoading;
+	}
+
+	// Handle game active state changes from ArtistSearch component
+	function handleGameActiveChange(isActive: boolean) {
+		isGameActive = isActive;
 	}
 </script>
 
@@ -89,14 +95,14 @@
 							options={playbackOptions}
 							placeholder="Select mode..."
 							class="w-32"
-							disabled={isPlayerLoading}
+							disabled={isPlayerLoading || isGameActive}
 						/>
 					</div>
 				</div>
 			</div>
 
 			<!-- Artist Search Component -->
-			<ArtistSearch gameMode="classic" {playbackMode} onPlayerStateChange={handlePlayerStateChange} />
+			<ArtistSearch gameMode="classic" {playbackMode} onPlayerStateChange={handlePlayerStateChange} onGameActiveChange={handleGameActiveChange} />
 		</div>
 	</main>
 {/if}

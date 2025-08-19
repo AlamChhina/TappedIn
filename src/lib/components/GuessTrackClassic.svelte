@@ -55,12 +55,13 @@
 		playbackMode?: 'beginning' | 'random';
 		onSessionChange?: (sessionId: string | null) => void;
 		onPlayerStateChange?: (isLoading: boolean) => void;
+		onGameActiveChange?: (isActive: boolean) => void;
 		// Legacy props for backward compatibility
 		artist?: Artist;
 		artistName?: string;
 	}
 
-	let { tracks, item, itemType, playbackMode = 'beginning', onSessionChange, onPlayerStateChange, artist, artistName }: Props = $props();
+	let { tracks, item, itemType, playbackMode = 'beginning', onSessionChange, onPlayerStateChange, onGameActiveChange, artist, artistName }: Props = $props();
 
 	// Derive display properties from the selected item
 	const displayName = $derived(() => {
@@ -1099,14 +1100,15 @@
 	$effect(() => {
 		// Only trigger if playback mode actually changed and we have a current track
 		if (previousPlaybackMode !== playbackMode && currentTrack && playerState === 'ready') {
-			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- fully reloading component');
+			console.log('Playback mode changed from:', previousPlaybackMode, 'to:', playbackMode, '- starting new round');
 			previousPlaybackMode = playbackMode; // Update the previous mode
 			
 			// Ensure session is updated for new playback mode
 			ensureSession();
 			
-			// Fully reset the component by reinitializing everything
-			fullComponentReset();
+			// Instead of full reset, just start a new round with the new playback mode
+			// This is much safer and avoids disconnecting the player
+			startRound(false);
 		} else {
 			// Update previous mode without triggering action
 			previousPlaybackMode = playbackMode;
@@ -1124,6 +1126,12 @@
 	$effect(() => {
 		const isLoading = playerState === 'idle' || playerState === 'connecting' || isTransferring;
 		onPlayerStateChange?.(isLoading);
+	});
+
+	// Notify parent when game becomes active/inactive
+	$effect(() => {
+		const isGameActive = tracks.length > 0 && !!item && !!itemType;
+		onGameActiveChange?.(isGameActive);
 	});
 
 	// Function to fully reset the component when playback mode changes
