@@ -940,7 +940,7 @@
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
 	<div
-		class="rounded-lg border p-6"
+		class="rounded-lg border p-4 sm:p-6"
 		style="border-color: #282828; background-color: rgba(18, 18, 18, 0.6);"
 	>
 		<div class="mb-4 flex items-center justify-between">
@@ -994,18 +994,18 @@
 					<span>Initializing player...</span>
 				</div>
 			{:else if playerState === 'connecting'}
-				<div class="flex items-center gap-4 text-blue-400">
+			<div class="flex items-center gap-4 text-blue-400">
 					<div class="flex items-center gap-2">
 						<Loader2 class="h-4 w-4 animate-spin" />
-						<span>Connecting to Spotify...</span>
+						<span class="text-xs sm:text-sm">Connecting to Spotify...</span>
 					</div>
 					<Button
 						onclick={() => {
-							retryCount = 0;
 							initializePlayer();
 						}}
 						size="sm"
-						variant="outline">Retry Connection</Button
+						variant="outline"
+						class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
 					>
 				</div>
 			{:else if playerState === 'ready'}
