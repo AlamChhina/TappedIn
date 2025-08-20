@@ -966,7 +966,7 @@
 					</div>
 				{/if}
 
-				<h3 class="text-xl font-semibold text-white">
+				<h3 class="text-md sm:text-xl font-semibold text-white">
 					{headerText()}
 				</h3>
 			</div>
