@@ -1020,15 +1020,15 @@
 				<div class="flex items-center gap-4 text-red-400">
 					<div class="flex items-center gap-2">
 						<AlertCircle class="h-4 w-4" />
-						<span>Connection failed</span>
+						<span class="text-xs sm:text-sm">Connection failed</span>
 					</div>
 					<Button
 						onclick={() => {
-							retryCount = 0;
 							initializePlayer();
 						}}
 						size="sm"
-						variant="outline">Retry Connection</Button
+						variant="outline"
+						class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
 					>
 				</div>
 			{/if}
