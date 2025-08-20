@@ -77,6 +77,7 @@ export type GameSession = {
 	startTime: Date;
 	endTime?: Date;
 	guesses: GuessResult[];
+	highestStreak?: number; // Track the highest streak achieved in this session
 };
 
 export type SessionSummary = {

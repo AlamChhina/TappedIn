@@ -11,7 +11,8 @@
 		AlertCircle,
 		Flame,
 		Music,
-		HeartCrack
+		HeartCrack,
+		Crown
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -123,6 +124,7 @@
 	let showAnswer = $state(false);
 	let canAdvance = $state(false); // Separate state for when Enter can advance
 	let streak = $state(0); // Track correct guesses in a row
+	let highestStreak = $state(0); // Track highest streak achieved in this session
 	let retryCount = $state(0); // Track auto-retry attempts
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
@@ -150,6 +152,9 @@
 				if (currentSessionId) {
 					gameHistory.endSession(currentSessionId);
 				}
+
+				// Reset highest streak for new session
+				highestStreak = 0;
 
 				// Get the image URL from the item
 				const itemImage = item.images && item.images.length > 0 ? item.images[0].url : undefined;
@@ -693,6 +698,15 @@
 			guessStatus = 'correct';
 			showAnswer = true;
 			streak += 1; // Increment streak on correct guess
+			
+			// Update highest streak if current streak is higher
+			if (streak > highestStreak) {
+				highestStreak = streak;
+				// Update the session's highest streak in history
+				if (currentSessionId) {
+					gameHistory.updateHighestStreak(currentSessionId, highestStreak);
+				}
+			}
 		} else {
 			guessStatus = 'incorrect';
 			showAnswer = true; // Show answer on incorrect guess too
@@ -972,17 +986,29 @@
 			</div>
 
 			<!-- Streak Counter -->
-			<div
-				class="flex items-center gap-2 rounded-lg px-3 py-1.5"
-				style="background-color: rgba(40, 40, 40, 0.6);"
-			>
-				{#if streak >= 3}
-					<Flame class="h-4 w-4 text-orange-400" />
-				{/if}
-				<div class="text-sm font-medium text-gray-300">Streak:</div>
-				<div class="text-lg font-bold {streak > 0 ? 'text-spotify-green' : 'text-gray-400'}">
-					{streak}
+			<div class="flex items-center gap-2 sm:gap-3">
+				<div
+					class="flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-2.5 py-1"
+					style="background-color: rgba(40, 40, 40, 0.6);"
+				>
+					{#if streak >= 3}
+						<Flame class="h-3 w-3 text-orange-400" />
+					{/if}
+					<div class="text-xs font-medium text-gray-300">Streak:</div>
+					<div class="text-xs sm:text-sm font-bold {streak > 0 ? 'text-spotify-green' : 'text-gray-400'}">
+						{streak}
+					</div>
 				</div>
+				
+				{#if highestStreak > 0}
+					<div
+						class="flex items-center gap-1 rounded-lg px-2 py-1"
+						style="background-color: rgba(40, 40, 40, 0.4);"
+					>
+						<Crown class="h-3 w-3 text-yellow-400" />
+						<div class="text-xs sm:text-sm font-medium text-yellow-400">{highestStreak}</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 

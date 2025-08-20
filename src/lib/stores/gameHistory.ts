@@ -78,6 +78,24 @@ function createGameHistoryStore() {
 			});
 		},
 
+		// Update the highest streak for a session
+		updateHighestStreak: (sessionId: string, currentStreak: number) => {
+			update(history => {
+				const updatedHistory = history.map(session => {
+					if (session.id === sessionId) {
+						const existingHighest = session.highestStreak || 0;
+						return {
+							...session,
+							highestStreak: Math.max(existingHighest, currentStreak)
+						};
+					}
+					return session;
+				});
+				saveHistoryToStorage(updatedHistory);
+				return updatedHistory;
+			});
+		},
+
 		// End a session
 		endSession: (sessionId: string) => {
 			update(history => {
@@ -161,6 +179,7 @@ function loadHistoryFromStorage(): GameSession[] {
 			...session,
 			startTime: new Date(session.startTime),
 			endTime: session.endTime ? new Date(session.endTime) : undefined,
+			highestStreak: session.highestStreak || 0, // Handle legacy data
 			guesses: session.guesses.map((guess: any) => ({
 				...guess,
 				timestamp: new Date(guess.timestamp)

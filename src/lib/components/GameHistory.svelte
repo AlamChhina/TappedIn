@@ -15,7 +15,8 @@
 		Shuffle,
 		ChevronDown,
 		ChevronUp,
-		History
+		History,
+		Crown
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
@@ -207,7 +208,7 @@
 
 						<!-- Score Summary -->
 						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-4">
+							<div class="flex items-center gap-3 sm:gap-4">
 								<div class="flex items-center gap-2">
 									<span class="text-sm text-gray-300">Score:</span>
 									<span class="font-bold {getScoreColor(summary.percentage)}">
@@ -215,6 +216,13 @@
 									</span>
 									<span class="text-xs text-gray-400">({summary.percentage}%)</span>
 								</div>
+								
+								{#if session.highestStreak && session.highestStreak > 0}
+									<div class="flex items-center gap-1">
+										<Crown class="h-3 w-3 text-yellow-400" />
+										<span class="text-xs font-medium text-yellow-400">{session.highestStreak}</span>
+									</div>
+								{/if}
 								
 								{#if summary.percentage === 100 && summary.total >= 3}
 									<div class="flex items-center gap-1">
