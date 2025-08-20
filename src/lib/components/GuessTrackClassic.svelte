@@ -1393,7 +1393,9 @@
 								<RotateCcw class="h-4 w-4" />
 							{/if}
 							<span class="hidden sm:inline">{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)</span>
-							<span class="sm:hidden">{isFirstSongForArtist ? '' : `${getCurrentDuration()}s`}</span>
+							{#if !isFirstSongForArtist}
+								<span class="sm:hidden">{getCurrentDuration()}s</span>
+							{/if}
 						</Button>
 
 						<!-- Show +X sec button if not first song, not showing answer, and not at max tries -->
