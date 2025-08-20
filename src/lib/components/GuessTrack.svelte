@@ -1055,7 +1055,7 @@
 		{#if currentTrack}
 			<div>
 				<div class="mb-4 flex items-center justify-between">
-					<div class="flex items-center gap-4">
+					<div class="flex items-center gap-2 sm:gap-4">
 						<Button
 							onclick={playFromStart}
 							disabled={playerState !== 'ready' || !deviceId || isPlaying}
@@ -1068,7 +1068,7 @@
 							{:else}
 								<RotateCcw class="h-4 w-4" />
 							{/if}
-							{isFirstSongForArtist ? 'Play' : 'Replay'}
+							<span class="hidden sm:inline">{isFirstSongForArtist ? 'Play' : 'Replay'}</span>
 						</Button>
 
 						{#if !isFirstSongForArtist}
@@ -1079,7 +1079,7 @@
 									class="flex items-center gap-2"
 								>
 									<Play class="h-4 w-4" />
-									Resume
+									<span class="hidden sm:inline">Resume</span>
 								</Button>
 							{:else}
 								<Button
@@ -1088,7 +1088,7 @@
 									class="flex items-center gap-2"
 								>
 									<Pause class="h-4 w-4" />
-									Pause
+									<span class="hidden sm:inline">Pause</span>
 								</Button>
 							{/if}
 						{/if}
@@ -1102,7 +1102,7 @@
 							class="flex items-center gap-2"
 						>
 							<HeartCrack class="h-4 w-4" />
-							Give Up
+							<span class="hidden sm:inline">Give Up</span>
 						</Button>
 					{/if}
 				</div>

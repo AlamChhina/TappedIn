@@ -1344,7 +1344,7 @@
 		{#if currentTrack}
 			<div>
 			<div class="mb-4 flex items-center justify-between">
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-2 sm:gap-4">
 					{#if showAnswer && isPlayingFullSong}
 						<!-- When playing full song after guess, show full song replay button -->
 						<Button
@@ -1357,7 +1357,7 @@
 							{:else}
 								<RotateCcw class="h-4 w-4" />
 							{/if}
-							Replay
+							<span class="hidden sm:inline">Replay</span>
 						</Button>
 
 						<!-- Pause/Resume buttons when playing full song -->
@@ -1368,7 +1368,7 @@
 								class="flex items-center gap-2"
 							>
 								<Play class="h-4 w-4" />
-								Resume
+								<span class="hidden sm:inline">Resume</span>
 							</Button>
 						{:else}
 							<Button
@@ -1377,7 +1377,7 @@
 								class="flex items-center gap-2"
 							>
 								<Pause class="h-4 w-4" />
-								Pause
+								<span class="hidden sm:inline">Pause</span>
 							</Button>
 						{/if}
 					{:else}
@@ -1394,7 +1394,8 @@
 							{:else}
 								<RotateCcw class="h-4 w-4" />
 							{/if}
-							{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)
+							<span class="hidden sm:inline">{isFirstSongForArtist ? 'Play' : 'Replay'} ({getCurrentDuration()} sec)</span>
+							<span class="sm:hidden">{isFirstSongForArtist ? '' : `${getCurrentDuration()}s`}</span>
 						</Button>
 
 						<!-- Show +X sec button if not first song, not showing answer, and not at max tries -->
@@ -1405,7 +1406,8 @@
 								class="flex items-center gap-2"
 							>
 								<Plus class="h-4 w-4" />
-								+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec
+								<span class="hidden sm:inline">+ {tryDurations[triesUsed + 1] - getCurrentDuration()} sec</span>
+								<span class="sm:hidden">{tryDurations[triesUsed + 1] - getCurrentDuration()}s</span>
 							</Button>
 						{/if}
 					{/if}
@@ -1419,7 +1421,7 @@
 						class="flex items-center gap-2"
 					>
 						<HeartCrack class="h-4 w-4" />
-						Give Up
+						<span class="hidden sm:inline">Give Up</span>
 					</Button>
 				{/if}
 			</div>				<!-- Guess Input -->
