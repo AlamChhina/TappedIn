@@ -1121,28 +1121,29 @@
 						onkeydown={handleKeydown}
 					/>
 
+			
 					<!-- Suggestions Dropdown -->
 					{#if suggestions.length > 0 && !showAnswer}
 						<div
-							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-32 overflow-y-auto rounded-md border shadow-lg"
+							class="absolute top-full right-0 left-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-md border shadow-lg"
 							style="border-color: #282828; background-color: #181818;"
 						>
 							{#each suggestions as suggestion, index}
 								<button
-									class="w-full px-3 py-2 text-left text-sm text-white"
-									style="background-color: {hoveredSuggestionIndex === index ||
-									(hoveredSuggestionIndex === null && selectedSuggestionIndex === index)
+									class="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-gray-800 focus:bg-gray-800 focus:outline-none"
+									style="background-color: {selectedSuggestionIndex === index ||
+									hoveredSuggestionIndex === index
 										? '#282828'
 										: 'transparent'};"
 									onmouseenter={() => (hoveredSuggestionIndex = index)}
 									onmouseleave={() => (hoveredSuggestionIndex = null)}
 									onclick={() => selectSuggestion(suggestion)}
 								>
-									<div class="flex flex-col">
-										<span class="font-medium">{suggestion.name}</span>
+									<div class="flex flex-1 flex-col">
+										<span class="font-medium text-white">{suggestion.name}</span>
 										{#if displayType() === 'playlist'}
-											<span class="mt-0.5 text-xs text-gray-400"
-												>{suggestion.artistNames.join(', ')}</span
+											<span class="text-xs text-gray-400"
+												>by {suggestion.artistNames.join(', ')}</span
 											>
 										{/if}
 									</div>
