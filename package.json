@@ -51,6 +51,7 @@
 		"vitest-browser-svelte": "^1.1.0"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-node": "^5.3.1",
 		"lucide-svelte": "^0.540.0"
 	}
 }
