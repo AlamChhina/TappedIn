@@ -1501,7 +1501,7 @@
 						disabled={!canAdvance}
 						class="w-full {canAdvance ? 'animate-pulse' : ''}"
 					>
-						Next Song {canAdvance ? '(Press Enter)' : ''}
+						Next Song <span class="hidden sm:inline">{canAdvance ? '(Enter)' : ''}</span>
 					</Button>
 				{/if}
 			</div>

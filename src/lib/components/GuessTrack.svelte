@@ -1188,7 +1188,7 @@
 						class="w-full {canAdvance ? '' : 'cursor-not-allowed opacity-50'}"
 						disabled={!canAdvance}
 					>
-						Next Song {canAdvance ? '(Enter)' : ''}
+						Next Song <span class="hidden sm:inline">{canAdvance ? '(Enter)' : ''}</span>
 					</Button>
 				{/if}
 			</div>
