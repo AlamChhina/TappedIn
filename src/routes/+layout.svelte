@@ -54,7 +54,7 @@
 		</div>
 
 		<!-- Right side: Game Mode Navigation and User Avatar -->
-		<div class="flex items-center gap-4">
+		<div class="flex items-center gap-2 sm:gap-4">
 			<!-- Game Mode Navigation (only show when logged in) -->
 			{#if session.loggedIn}
 				<nav class="flex items-center gap-2">
