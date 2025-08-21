@@ -16,10 +16,19 @@
 		ChevronDown,
 		ChevronUp,
 		History,
-		Crown
+		Crown,
+		Trash2
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { 
+		Dialog, 
+		DialogContent, 
+		DialogHeader, 
+		DialogTitle, 
+		DialogDescription 
+	} from '$lib/components/ui/dialog';
 	import { goto } from '$app/navigation';
+	import { gameHistory } from '$lib/stores/gameHistory';
 	import type { GameSession, SessionSummary, GameMode, PlaybackMode, SearchResultType } from '$lib/types';
 
 	// Props
@@ -42,6 +51,9 @@
 
 	// State for expanded sessions
 	let expandedSessions = $state<Set<string>>(new Set());
+
+	// State for clear history modal
+	let showClearModal = $state(false);
 
 	// Helper functions
 	function getSessionSummary(session: GameSession): SessionSummary {
@@ -128,6 +140,13 @@
 
 	function shouldShowGuesses(session: GameSession): boolean {
 		return isCurrentSession(session.id) || isSessionExpanded(session.id);
+	}
+
+	// Clear history functionality
+	function handleClearHistory() {
+		gameHistory.clear();
+		showClearModal = false;
+		// If we're on the history page, this will automatically update due to store reactivity
 	}
 </script>
 
@@ -319,6 +338,49 @@
 					Showing latest 10 of {history.filter(session => session.guesses.length > 0).length} sessions
 				</div>
 			{/if}
+
+			<!-- Clear History Button -->
+			{#if displaySessions.length > 0}
+				<div class="mt-6 pt-4 border-t flex justify-end" style="border-color: #282828;">
+					<Button 
+						onclick={() => showClearModal = true}
+						class="flex items-center gap-2 cursor-pointer"
+						size="sm"
+					>
+						<Trash2 class="h-4 w-4" />
+						Clear All History
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
+
+	<!-- Clear History Confirmation Modal -->
+	<Dialog bind:open={showClearModal}>
+		<DialogContent>
+			<DialogHeader>
+				<DialogTitle class="text-white">Clear Game History</DialogTitle>
+				<DialogDescription class="text-gray-300">
+					Are you sure you want to clear all your game history? This action cannot be undone and will permanently delete all your past game sessions.
+				</DialogDescription>
+			</DialogHeader>
+			
+			<div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+				<Button 
+					onclick={() => showClearModal = false}
+					class="cursor-pointer"
+				>
+					Cancel
+				</Button>
+				<Button 
+					variant="destructive"
+					onclick={handleClearHistory}
+					class="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700"
+				>
+					<Trash2 class="h-4 w-4 mr-2" />
+					Clear History
+				</Button>
+			</div>
+		</DialogContent>
+	</Dialog>
 {/if}
