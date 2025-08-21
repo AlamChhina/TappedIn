@@ -13,30 +13,47 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	}
 
 	const query = url.searchParams.get('q');
+	const filterType = url.searchParams.get('type') || 'artist'; // Default to artist
 
 	if (!query || query.trim().length === 0) {
 		return json([]);
 	}
 
+	// Validate filter type
+	if (!['artist', 'album', 'playlist'].includes(filterType)) {
+		throw error(400, 'Invalid filter type');
+	}
+
 	try {
-		// Make parallel requests for public search and user's own playlists
-		const [searchResponse, userPlaylistsResponse] = await Promise.all([
-			// Search for artists, albums, and playlists
+		// Determine search type based on filter
+		const searchType = filterType === 'artist' ? 'artist' : filterType === 'album' ? 'album' : 'playlist';
+		
+		// Make parallel requests for public search and user's own playlists (only if filtering for playlists)
+		const promises = [
+			// Search for the specified type
 			fetch(
-				`https://api.spotify.com/v1/search?type=artist,album,playlist&q=${encodeURIComponent(query)}&limit=10&market=from_token`,
+				`https://api.spotify.com/v1/search?type=${searchType}&q=${encodeURIComponent(query)}&limit=10&market=from_token`,
 				{
 					headers: {
 						Authorization: `Bearer ${accessToken}`
 					}
 				}
-			),
-			// Get user's own playlists
-			fetch(`https://api.spotify.com/v1/me/playlists?limit=50`, {
-				headers: {
-					Authorization: `Bearer ${accessToken}`
-				}
-			})
-		]);
+			)
+		];
+
+		// Only fetch user playlists if we're filtering for playlists
+		if (filterType === 'playlist') {
+			promises.push(
+				fetch(`https://api.spotify.com/v1/me/playlists?limit=50`, {
+					headers: {
+						Authorization: `Bearer ${accessToken}`
+					}
+				})
+			);
+		}
+
+		const responses = await Promise.all(promises);
+		const [searchResponse, userPlaylistsResponse] = responses;
 
 		if (searchResponse.status === 429) {
 			const retryAfter = searchResponse.headers.get('Retry-After');
@@ -57,9 +74,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		}
 
 		const data = await searchResponse.json();
-		const userPlaylistsData = userPlaylistsResponse.ok
+		const userPlaylistsData = (userPlaylistsResponse && userPlaylistsResponse.ok)
 			? await userPlaylistsResponse.json()
 			: { items: [] };
+		
 		console.log('Spotify search response structure:', {
 			hasArtists: !!data.artists,
 			artistsCount: data.artists?.items?.length || 0,
@@ -68,10 +86,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			hasPlaylists: !!data.playlists,
 			playlistsCount: data.playlists?.items?.length || 0
 		});
+		
 		const results: any[] = [];
 
-		// Add artists
-		if (data.artists?.items && Array.isArray(data.artists.items)) {
+		// Add results based on filter type
+		if (filterType === 'artist' && data.artists?.items && Array.isArray(data.artists.items)) {
 			data.artists.items.forEach((artist: any) => {
 				if (artist && artist.id && artist.name) {
 					results.push({
@@ -85,7 +104,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		}
 
 		// Add albums (only those with more than 1 track and not singles)
-		if (data.albums?.items && Array.isArray(data.albums.items)) {
+		if (filterType === 'album' && data.albums?.items && Array.isArray(data.albums.items)) {
 			const rawAlbums = data.albums.items.filter(
 				(album: any) =>
 					album &&
@@ -147,7 +166,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		}
 
 		// Add playlists from public search
-		if (data.playlists?.items && Array.isArray(data.playlists.items)) {
+		if (filterType === 'playlist' && data.playlists?.items && Array.isArray(data.playlists.items)) {
 			data.playlists.items
 				.filter(
 					(playlist: any) =>
@@ -172,8 +191,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				});
 		}
 
-		// Add user's own playlists that match the search query
-		if (userPlaylistsData.items && Array.isArray(userPlaylistsData.items)) {
+		// Add user's own playlists that match the search query (only if filtering for playlists)
+		if (filterType === 'playlist' && userPlaylistsData.items && Array.isArray(userPlaylistsData.items)) {
 			const queryLower = query.toLowerCase();
 			userPlaylistsData.items
 				.filter((playlist: any) => {
@@ -222,24 +241,14 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				});
 		}
 
-		// Sort results to prioritize artists, then albums, then user playlists, then other playlists
-		results.sort((a, b) => {
-			const typeOrder = { artist: 0, album: 1, playlist: 2 };
-			const aTypeOrder = typeOrder[a.type as keyof typeof typeOrder];
-			const bTypeOrder = typeOrder[b.type as keyof typeof typeOrder];
-
-			if (aTypeOrder !== bTypeOrder) {
-				return aTypeOrder - bTypeOrder;
-			}
-
-			// Within playlists, prioritize user-owned ones
-			if (a.type === 'playlist' && b.type === 'playlist') {
+		// Sort results - for playlists, prioritize user-owned ones
+		if (filterType === 'playlist') {
+			results.sort((a, b) => {
 				if (a.isUserOwned && !b.isUserOwned) return -1;
 				if (!a.isUserOwned && b.isUserOwned) return 1;
-			}
-
-			return 0;
-		});
+				return 0;
+			});
+		}
 
 		return json(results);
 	} catch (err) {

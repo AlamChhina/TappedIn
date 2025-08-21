@@ -35,6 +35,14 @@
 	let searchInputRef = $state<HTMLInputElement | null>(null);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let selectedIndex = $state(-1);
+	let activeFilter = $state<SearchResultType>('artist'); // Default to artist filter
+
+	// Filter options
+	const filters: { type: SearchResultType; label: string; placeholder: string }[] = [
+		{ type: 'artist', label: 'Artists', placeholder: 'Search for artists...' },
+		{ type: 'album', label: 'Albums', placeholder: 'Search for albums...' },
+		{ type: 'playlist', label: 'Playlists', placeholder: 'Search for playlists...' }
+	];
 
 	// Subscribe to game history for display
 	let history = $state<GameSession[]>([]);
@@ -74,6 +82,21 @@
 		onGameActiveChange?.(false);
 	}
 
+	// Handle filter change
+	function handleFilterChange(filterType: SearchResultType) {
+		activeFilter = filterType;
+		
+		// Clear current results and search again if there's a query
+		searchResults = [];
+		showDropdown = false;
+		selectedIndex = -1;
+		searchError = null; // Clear any filter-related errors
+		
+		if (searchQuery.trim().length > 0) {
+			debounceSearch(searchQuery);
+		}
+	}
+
 	// Debounced search function
 	function debounceSearch(query: string) {
 		clearTimeout(debounceTimer);
@@ -111,6 +134,15 @@
 				showDropdown = false;
 				return;
 			}
+			// If URL type doesn't match the active filter, show error
+			if (urlInfo.type !== activeFilter) {
+				const filterName = activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1);
+				const urlTypeName = urlInfo.type.charAt(0).toUpperCase() + urlInfo.type.slice(1);
+				searchError = `This is ${urlTypeName.toLowerCase()} URL, but you're currently filtering for ${filterName.toLowerCase()}s. Please switch to the ${urlTypeName}s filter or search for a different ${filterName.toLowerCase()}.`;
+				searchResults = [];
+				showDropdown = false;
+				return;
+			}
 			await fetchFromSpotifyUrl(urlInfo.type as SearchResultType, urlInfo.id);
 			return;
 		}
@@ -119,7 +151,7 @@
 		searchError = null;
 
 		try {
-			const response = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}`);
+			const response = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&type=${activeFilter}`);
 
 			if (!response.ok) {
 				throw new Error(`Search failed: ${response.statusText}`);
@@ -173,7 +205,7 @@
 
 	// Fetch tracks for selected item
 	async function fetchTracks(item: SearchResult) {
-		const type = (item as any).type as SearchResultType;
+		const type = activeFilter; // Use the current filter instead of trying to determine from item
 		selectedItem = item;
 		selectedType = type;
 		searchQuery = item.name;
@@ -338,6 +370,12 @@
 		}
 	}
 
+	// Get current placeholder text based on active filter
+	function getPlaceholder(): string {
+		const filter = filters.find(f => f.type === activeFilter);
+		return filter?.placeholder || 'Search...';
+	}
+
 	// Reset search when input is cleared
 	$effect(() => {
 		if (searchQuery.trim().length === 0) {
@@ -348,6 +386,7 @@
 			tracks = [];
 			searchError = null;
 			tracksError = null;
+			// Note: We don't reset activeFilter here - it should persist
 		}
 	});
 
@@ -373,6 +412,26 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-6">
+	<!-- Filter Buttons -->
+	<div class="flex justify-center">
+		<div class="flex gap-1 rounded-full bg-[#1a1a1a] p-1">
+			{#each filters as filter}
+				<button
+					class="rounded-full px-4 py-2 text-sm font-medium transition-all duration-200"
+					class:bg-white={activeFilter === filter.type}
+					class:text-black={activeFilter === filter.type}
+					class:text-gray-400={activeFilter !== filter.type}
+					class:hover:text-white={activeFilter !== filter.type}
+					onclick={() => handleFilterChange(filter.type)}
+					aria-pressed={activeFilter === filter.type}
+					aria-label={`Search for ${filter.label.toLowerCase()}`}
+				>
+					{filter.label}
+				</button>
+			{/each}
+		</div>
+	</div>
+
 	<!-- Search Input -->
 	<div class="relative">
 		<div class="relative">
@@ -380,7 +439,7 @@
 			<Input
 				bind:ref={searchInputRef}
 				bind:value={searchQuery}
-				placeholder="Search for artists, albums, or playlists..."
+				placeholder={getPlaceholder()}
 				class="focus-visible:ring-spotify-green focus:border-spotify-green border-[#282828] bg-[#282828] pr-10 pl-10 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] [font-size:16px]"
 				onInput={handleInput}
 				onKeydown={handleKeydown}
@@ -412,9 +471,8 @@
 				style="border-color: #282828; background-color: #181818;"
 			>
 				{#each searchResults as item, index}
-					{@const type = (item as any).type as SearchResultType}
-					{@const Icon = getTypeIcon(type)}
-					{@const subtitle = getSubtitle(item, type)}
+					{@const Icon = getTypeIcon(activeFilter)}
+					{@const subtitle = getSubtitle(item, activeFilter)}
 					<button
 						class="flex w-full items-center gap-3 p-3 transition-colors focus:outline-none"
 						style="background-color: {selectedIndex === index ? '#282828' : 'transparent'};"
@@ -425,11 +483,11 @@
 							<img
 								src={item.images[item.images.length - 1].url}
 								alt={item.name}
-								class="h-10 w-10 object-cover {type === 'artist' ? 'rounded-full' : 'rounded-sm'}"
+								class="h-10 w-10 object-cover {activeFilter === 'artist' ? 'rounded-full' : 'rounded-sm'}"
 							/>
 						{:else}
 							<div
-								class="flex h-10 w-10 items-center justify-center {type === 'artist'
+								class="flex h-10 w-10 items-center justify-center {activeFilter === 'artist'
 									? 'rounded-full'
 									: 'rounded-sm'}"
 								style="background-color: #282828;"
@@ -443,7 +501,7 @@
 								<span class="text-xs text-gray-400">{subtitle}</span>
 							{/if}
 						</div>
-						<span class="text-xs font-medium text-gray-400">{getTypeName(type)}</span>
+						<span class="text-xs font-medium text-gray-400">{getTypeName(activeFilter)}</span>
 					</button>
 				{/each}
 			</div>
@@ -453,8 +511,7 @@
 	<!-- Search Note -->
 	<div class="flex items-center justify-center gap-2 text-center text-xs text-gray-400">
 		<span>
-			Can't find what you're looking for? You can paste a Spotify share link for any artist, album,
-			or playlist.
+			Can't find what you're looking for? You can paste a Spotify share link for any {activeFilter === 'artist' ? 'artist' : activeFilter === 'album' ? 'album' : 'playlist'}.
 		</span>
 	</div>
 
