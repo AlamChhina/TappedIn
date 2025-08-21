@@ -168,17 +168,17 @@
 				<h3 class="text-lg font-semibold text-white">Game History</h3>
 			</div>
 
-			<div class="space-y-4">
+			<div class="space-y-3">
 				{#each displaySessions as session, index (session.id)}
 					{@const summary = getSessionSummary(session)}
 					{@const TypeIcon = getTypeIcon(session.itemType)}
 					{@const ModeIcon = getModeIcon(session.mode)}
 					{@const PlaybackIcon = getPlaybackIcon(session.playbackMode)}
 					
-					<div 
-						class="rounded-lg border p-3 sm:p-4 space-y-3"
-						style="border-color: #404040; background-color: rgba(24, 24, 24, 0.8);"
-					>
+					<div class="space-y-3">
+						{#if index > 0}
+							<div class="border-t mb-4" style="border-color: #282828;"></div>
+						{/if}
 						<!-- Session Header -->
 						<div class="flex items-start justify-between gap-3">
 							<div class="flex items-start gap-3 min-w-0 flex-1">
@@ -341,7 +341,7 @@
 
 			<!-- Clear History Button -->
 			{#if displaySessions.length > 0}
-				<div class="mt-6 pt-4 border-t flex justify-end" style="border-color: #282828;">
+				<div class="mt-3 pt-4 border-t flex justify-end" style="border-color: #282828;">
 					<Button 
 						onclick={() => showClearModal = true}
 						class="flex items-center gap-2 cursor-pointer"
