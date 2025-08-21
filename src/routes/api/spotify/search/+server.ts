@@ -5,6 +5,86 @@ import {
 	type SpotifyAlbumObjectSimplified
 } from '$lib/utils/albumDeduplication';
 
+// Helper function to calculate string similarity (simple implementation)
+function calculateSimilarity(str1: string, str2: string): number {
+	const s1 = str1.toLowerCase().trim();
+	const s2 = str2.toLowerCase().trim();
+	
+	// Exact match gets highest score
+	if (s1 === s2) return 1.0;
+	
+	// Check if query is contained in the name (partial match)
+	if (s2.includes(s1)) {
+		// Give higher score if the match is closer to the beginning
+		const index = s2.indexOf(s1);
+		const lengthRatio = s1.length / s2.length;
+		return 0.8 + (lengthRatio * 0.15) - (index * 0.01);
+	}
+	
+	// Check if name starts with query
+	if (s2.startsWith(s1)) return 0.75;
+	
+	// Simple word-based matching
+	const words1 = s1.split(/\s+/);
+	const words2 = s2.split(/\s+/);
+	
+	let matchingWords = 0;
+	let exactWordMatches = 0;
+	
+	for (const word1 of words1) {
+		for (const word2 of words2) {
+			if (word1 === word2) {
+				exactWordMatches++;
+				matchingWords++;
+				break;
+			} else if (word2.includes(word1) || word1.includes(word2)) {
+				matchingWords += 0.5;
+				break;
+			}
+		}
+	}
+	
+	// Bonus for exact word matches
+	const wordMatchScore = matchingWords / Math.max(words1.length, words2.length) * 0.6;
+	const exactWordBonus = exactWordMatches / words1.length * 0.2;
+	
+	return wordMatchScore + exactWordBonus;
+}
+
+// Client-side reranking to improve search relevance
+function applyClientSideReranking(results: any[], query: string): any[] {
+	if (!query.trim() || results.length === 0) return results;
+	
+	console.log('🔍 Applying client-side reranking for query:', query);
+	
+	// Calculate similarity scores and sort
+	const scoredResults = results.map(result => {
+		const similarity = calculateSimilarity(query, result.name);
+		console.log(`  "${result.name}" -> similarity: ${similarity.toFixed(3)}`);
+		return {
+			...result,
+			_similarity: similarity
+		};
+	});
+	
+	// Sort by similarity score (descending), then by original order
+	scoredResults.sort((a, b) => {
+		const scoreDiff = b._similarity - a._similarity;
+		if (Math.abs(scoreDiff) > 0.05) { // Lower threshold for more aggressive reranking
+			return scoreDiff;
+		}
+		return 0; // Keep original order for items with similar scores
+	});
+	
+	console.log('📊 Reranked results:');
+	scoredResults.forEach((result, index) => {
+		console.log(`  ${index + 1}. "${result.name}" (score: ${result._similarity.toFixed(3)})`);
+	});
+	
+	// Remove the temporary _similarity property
+	return scoredResults.map(({ _similarity, ...result }) => result);
+}
+
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const accessToken = cookies.get('sp_at');
 
@@ -250,7 +330,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			});
 		}
 
-		return json(results);
+		// Apply client-side reranking to improve relevance
+		const rerankedResults = applyClientSideReranking(results, query);
+
+		return json(rerankedResults);
 	} catch (err) {
 		console.error('Search error:', err);
 		console.error('Error details:', {
