@@ -28,7 +28,7 @@
 		SearchResultType
 	} from '$lib/types';
 	import { gameHistory } from '$lib/stores/gameHistory';
-	import { mobileSpotifyManager } from '$lib/utils/mobileSpotifyManager';
+	import { primeMobileConnection } from '$lib/utils/fastMobileConnectionManager';
 	import { isMobileDevice } from '$lib/utils/deviceManager';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
@@ -390,15 +390,21 @@
 			});
 
 			// Ready event
-			player.addListener('ready', ({ device_id }: any) => {
+			player.addListener('ready', async ({ device_id }: any) => {
 				console.log('Player ready with device ID:', device_id);
 				deviceId = device_id;
 				playerState = 'ready';
 				
-				// Reset mobile connection state for fresh connections
+				// Prime mobile connection for fast playback
 				if (isMobileDevice()) {
-					console.log('📱 Resetting mobile connection state for new device');
-					mobileSpotifyManager.resetConnectionState();
+					console.log('📱 Priming mobile connection for fast playback');
+					try {
+						await primeMobileConnection(device_id);
+						console.log('✅ Mobile connection primed successfully');
+					} catch (error) {
+						console.error('❌ Mobile connection priming failed:', error);
+						// Continue anyway - fallback to standard playback
+					}
 				}
 				
 				// Don't auto-transfer playback since we want manual first play
@@ -735,20 +741,11 @@
 			console.log('Start position:', startPosition, 'ms');
 			console.log('Is Mobile:', isMobileDevice());
 
-			// Use enhanced mobile manager for device activation, but standard API for playback
+			// Fast mobile playback - priming should have prepared the connection
 			if (isMobileDevice()) {
-				console.log('📱 Using enhanced mobile device activation');
+				console.log('📱 Using fast mobile playback (connection should be primed)');
 				
-				try {
-					// First, ensure device is properly activated
-					await mobileSpotifyManager.activateDevice(deviceId);
-					console.log('✅ Device activation successful');
-				} catch (activationError) {
-					console.error('❌ Device activation failed:', activationError);
-					throw new Error(`Device activation failed: ${activationError instanceof Error ? activationError.message : 'Unknown error'}`);
-				}
-				
-				// Then use standard playback API so timing logic continues to work
+				// Simple, fast playback since connection was primed
 				const payload = {
 					uris: [currentTrack.uri],
 					position_ms: startPosition
@@ -762,7 +759,7 @@
 
 				if (!response.ok) {
 					const errorText = await response.text();
-					console.error('Playback failed after activation:', response.status, errorText);
+					console.error('Fast mobile playback failed:', response.status, errorText);
 					throw new Error(errorText);
 				}
 			} else {
@@ -808,11 +805,8 @@
 			errorMessage = error instanceof Error ? error.message : 'Failed to play track';
 			isPlaying = false;
 
-			// Reset mobile connection state on error for fresh retry
-			if (isMobileDevice()) {
-				console.log('🔄 Resetting mobile connection state due to playback error');
-				mobileSpotifyManager.resetConnectionState();
-			}
+			// Note: Fast connection manager doesn't require state reset -
+			// connections are re-primed on each device ready event
 		}
 	}
 
