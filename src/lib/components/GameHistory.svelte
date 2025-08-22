@@ -17,7 +17,8 @@
 		ChevronUp,
 		History,
 		Crown,
-		Trash2
+		Trash2,
+		Share
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { 
@@ -54,6 +55,10 @@
 
 	// State for clear history modal
 	let showClearModal = $state(false);
+
+	// State for toast notification
+	let showToast = $state(false);
+	let toastMessage = $state('');
 
 	// Helper functions
 	function getSessionSummary(session: GameSession): SessionSummary {
@@ -148,6 +153,90 @@
 		showClearModal = false;
 		// If we're on the history page, this will automatically update due to store reactivity
 	}
+
+	// Share functionality
+	function generateShareText(session: GameSession): string {
+		const summary = getSessionSummary(session);
+		const gameModeLabel = session.mode.charAt(0).toUpperCase() + session.mode.slice(1);
+		const playbackModeLabel = session.playbackMode.charAt(0).toUpperCase() + session.playbackMode.slice(1);
+		
+		// Header line - include playback mode
+		let shareText = `${session.itemName} | ${gameModeLabel} | ${playbackModeLabel}\n`;
+		
+		// Score line
+		shareText += `${summary.correct}/${summary.total} (${summary.percentage}%)\n\n`;
+		
+		// Find the longest song name to determine consistent padding
+		const maxSongLength = Math.max(
+			...session.guesses.map(guess => {
+				const songName = guess.songName.length > 25 
+					? guess.songName.substring(0, 25) + '...' 
+					: guess.songName;
+				return songName.length;
+			})
+		);
+		
+		// Use a minimum of 25 characters for consistent alignment
+		const paddingLength = Math.max(25, maxSongLength + 2);
+		
+		// Songs with indicators - align circles on the right
+		session.guesses.forEach(guess => {
+			const songName = guess.songName.length > 25 
+				? guess.songName.substring(0, 25) + '...' 
+				: guess.songName;
+			
+			let indicator = '';
+			if (session.mode === 'classic') {
+				// For classic mode, show wordle-style indicators
+				const classicData = getClassicDisplay(guess.triesUsed, guess.maxTries);
+				if (classicData) {
+					for (let i = 0; i < classicData.total; i++) {
+						if (i < classicData.used) {
+							indicator += '🔴'; // Red circle for used tries
+						} else if (guess.isCorrect) {
+							indicator += '🟢'; // Green circle for remaining tries when correct
+						} else {
+							indicator += '⚪'; // White circle for unused tries when incorrect
+						}
+					}
+				}
+			} else {
+				// For zen mode, simple checkmark or X
+				indicator = guess.isCorrect ? '✅' : '❌';
+			}
+			
+			// Right-align the indicators with consistent spacing
+			const paddedSongName = songName.padEnd(paddingLength);
+			shareText += `${paddedSongName}${indicator}\n`;
+		});
+		
+		// Add domain at the bottom
+		shareText += '\nPlay at tappedingame.com';
+		
+		return shareText;
+	}
+
+	function showToastNotification(message: string) {
+		toastMessage = message;
+		showToast = true;
+		// Hide toast after 3 seconds
+		setTimeout(() => {
+			showToast = false;
+		}, 3000);
+	}
+
+	async function handleShare(session: GameSession) {
+		const shareText = generateShareText(session);
+		
+		try {
+			// Always use clipboard copying (like Wordle)
+			await navigator.clipboard.writeText(shareText);
+			showToastNotification('Copied to clipboard!');
+		} catch (err) {
+			console.error('Error copying to clipboard:', err);
+			showToastNotification('Failed to copy to clipboard');
+		}
+	}
 </script>
 
 <!-- Debug Section (remove in production)
@@ -220,7 +309,14 @@
 								</div>
 							</div>
 
-							<div class="text-xs text-gray-400 flex-shrink-0">
+							<div class="text-xs text-gray-400 flex-shrink-0 flex items-center gap-2">
+								<button
+									class="flex items-center gap-1 text-gray-400 hover:text-white transition-colors p-1 rounded"
+									onclick={() => handleShare(session)}
+									title="Share score"
+								>
+									<Share class="h-3 w-3" />
+								</button>
 								{formatTimeAgo(session.startTime)}
 							</div>
 						</div>
@@ -383,4 +479,27 @@
 			</div>
 		</DialogContent>
 	</Dialog>
+
+	<!-- Toast Notification -->
+	{#if showToast}
+		<div 
+			class="fixed bottom-4 right-4 z-50 px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg transform transition-all duration-300 ease-in-out"
+			style="animation: slideInUp 0.3s ease-out;"
+		>
+			{toastMessage}
+		</div>
+	{/if}
 {/if}
+
+<style>
+	@keyframes slideInUp {
+		from {
+			transform: translateY(100%);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+</style>
