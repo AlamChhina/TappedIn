@@ -735,12 +735,38 @@
 			console.log('Start position:', startPosition, 'ms');
 			console.log('Is Mobile:', isMobileDevice());
 
-			// Use enhanced mobile manager for better mobile device handling
+			// Use enhanced mobile manager for device activation, but standard API for playback
 			if (isMobileDevice()) {
-				console.log('📱 Using enhanced mobile playback manager');
-				await mobileSpotifyManager.playTrack(deviceId, currentTrack.uri, startPosition);
+				console.log('📱 Using enhanced mobile device activation');
+				
+				try {
+					// First, ensure device is properly activated
+					await mobileSpotifyManager.activateDevice(deviceId);
+					console.log('✅ Device activation successful');
+				} catch (activationError) {
+					console.error('❌ Device activation failed:', activationError);
+					throw new Error(`Device activation failed: ${activationError instanceof Error ? activationError.message : 'Unknown error'}`);
+				}
+				
+				// Then use standard playback API so timing logic continues to work
+				const payload = {
+					uris: [currentTrack.uri],
+					position_ms: startPosition
+				};
+
+				const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					console.error('Playback failed after activation:', response.status, errorText);
+					throw new Error(errorText);
+				}
 			} else {
-				// Fallback to standard playback for desktop
+				// Standard playback for desktop
 				const payload = {
 					uris: [currentTrack.uri],
 					position_ms: startPosition
