@@ -786,6 +786,10 @@
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
 
+			// Reset isPlaying state after successful playback start - let player_state_changed manage the timing
+			// This allows the "Add Time" buttons to become enabled while the track plays
+			isPlaying = false;
+
 			// Precise timing is now handled by position monitoring in the player_state_changed listener
 
 			// Mark that first song has been played for this artist and focus input
