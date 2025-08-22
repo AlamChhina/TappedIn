@@ -29,6 +29,7 @@
 	import { gameHistory } from '$lib/stores/gameHistory';
 	import { mobileSpotifyManager } from '$lib/utils/mobileSpotifyManager';
 	import { isMobileDevice } from '$lib/utils/deviceManager';
+	import { fastMobileConnectionManager } from '$lib/utils/fastMobileConnectionManager';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -328,12 +329,23 @@
 		}
 	}
 
-	// Initialize Spotify player
+	// Initialize Spotify player with mobile connection priming
 	async function initializePlayer() {
 		try {
 			console.log('Initializing Spotify player...');
 			playerState = 'connecting';
 			errorMessage = null;
+
+			// Prime mobile connection first if on mobile device
+			if (isMobileDevice()) {
+				console.log('📱 Priming mobile connection during initialization...');
+				const primingResult = await fastMobileConnectionManager.primeMobileConnection();
+				console.log('Priming result:', primingResult);
+				
+				if (!primingResult.success) {
+					console.warn('Connection priming failed, continuing with normal initialization:', primingResult.message);
+				}
+			}
 
 			await loadSpotifySDK();
 			console.log('SDK loaded, creating player...');
@@ -583,51 +595,51 @@
 
 			const startPosition = playbackMode === 'random' ? randomStartPosition : 0;
 
-			// Use enhanced mobile manager for device activation, but standard API for playback
-			if (isMobileDevice()) {
-				console.log('📱 Using enhanced mobile device activation');
+			// Use simple approach - connection should already be primed
+			if (isMobileDevice() && fastMobileConnectionManager.isPrimed()) {
+				console.log('📱 Using primed mobile connection - fast playback');
+				// Connection is already primed, use standard API directly
+			}
+			
+			// Standard playback API (works for both desktop and primed mobile)
+			const payload = {
+				uris: [currentTrack.uri],
+				position_ms: startPosition
+			};
+
+			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
 				
-				try {
-					// First, ensure device is properly activated
-					await mobileSpotifyManager.activateDevice(deviceId);
-					console.log('✅ Device activation successful');
-				} catch (activationError) {
-					console.error('❌ Device activation failed:', activationError);
-					throw new Error(`Device activation failed: ${activationError instanceof Error ? activationError.message : 'Unknown error'}`);
-				}
-				
-				// Then use standard playback API so component state is managed normally
-				const payload = {
-					uris: [currentTrack.uri],
-					position_ms: startPosition
-				};
-
-				const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-
-				if (!response.ok) {
-					const errorText = await response.text();
-					console.error('Playback failed after activation:', response.status, errorText);
-					throw new Error(errorText);
-				}
-			} else {
-				// Standard playback for desktop
-				const payload = {
-					uris: [currentTrack.uri],
-					position_ms: startPosition
-				};
-
-				const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-
-				if (!response.ok) {
-					const errorText = await response.text();
+				// If we get a 404 and we're on mobile, the priming might not have worked
+				if (response.status === 404 && isMobileDevice()) {
+					console.log('📱 Primed connection failed, falling back to activation...');
+					// Reset priming state and try activation as fallback
+					fastMobileConnectionManager.resetPrimingState();
+					
+					try {
+						await mobileSpotifyManager.activateDevice(deviceId);
+						
+						// Retry playback after activation
+						const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload)
+						});
+						
+						if (!retryResponse.ok) {
+							const retryError = await retryResponse.text();
+							throw new Error(retryError);
+						}
+					} catch (activationError) {
+						throw new Error(`Playback failed: ${errorText}. Activation also failed: ${activationError instanceof Error ? activationError.message : 'Unknown error'}`);
+					}
+				} else {
 					throw new Error(errorText);
 				}
 			}
