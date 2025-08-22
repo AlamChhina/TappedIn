@@ -28,7 +28,8 @@
 		SearchResultType
 	} from '$lib/types';
 	import { gameHistory } from '$lib/stores/gameHistory';
-	import { checkDeviceAvailability, transferPlaybackToDevice, getDeviceConnectionError, isMobileDevice } from '$lib/utils/deviceManager';
+	import { mobileSpotifyManager } from '$lib/utils/mobileSpotifyManager';
+	import { isMobileDevice } from '$lib/utils/deviceManager';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -393,6 +394,13 @@
 				console.log('Player ready with device ID:', device_id);
 				deviceId = device_id;
 				playerState = 'ready';
+				
+				// Reset mobile connection state for fresh connections
+				if (isMobileDevice()) {
+					console.log('📱 Resetting mobile connection state for new device');
+					mobileSpotifyManager.resetConnectionState();
+				}
+				
 				// Don't auto-transfer playback since we want manual first play
 			});
 
@@ -718,71 +726,36 @@
 
 			const duration = getCurrentDuration();
 			const startPosition = playbackMode === 'random' ? randomStartPosition : 0;
-			console.log(`=== Starting playback (Classic Mode - ${duration} seconds) ===`);
+			console.log(`🎵 Starting enhanced mobile playback (Classic Mode - ${duration} seconds)`);
 			console.log('Track:', currentTrack.name);
 			console.log('URI:', currentTrack.uri);
 			console.log('Device ID:', deviceId);
 			console.log('Tries used:', triesUsed);
 			console.log('Playback mode:', playbackMode);
 			console.log('Start position:', startPosition, 'ms');
+			console.log('Is Mobile:', isMobileDevice());
 
-			// Always use a fresh play request with specific URI to avoid queue issues
-			const payload = {
-				uris: [currentTrack.uri],
-				position_ms: startPosition
-			};
+			// Use enhanced mobile manager for better mobile device handling
+			if (isMobileDevice()) {
+				console.log('📱 Using enhanced mobile playback manager');
+				await mobileSpotifyManager.playTrack(deviceId, currentTrack.uri, startPosition);
+			} else {
+				// Fallback to standard playback for desktop
+				const payload = {
+					uris: [currentTrack.uri],
+					position_ms: startPosition
+				};
 
-			const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
+				const response = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
 
-			// If we get a 404 (no active device), check device availability and try transfer
-			if (response.status === 404) {
-				console.log('Device not active, checking availability...');
-				
-				const isDeviceAvailable = await checkDeviceAvailabilityLocal();
-				const isMobile = isMobileDevice();
-				
-				if (!isDeviceAvailable) {
-					// Device not found in available devices - might need app restart on mobile
-					const errorMsg = isMobile 
-						? 'Device not found in Spotify app. On mobile, ensure Spotify app is open and try refreshing this page. If the issue persists, try switching to the other game mode and back.'
-						: 'Device not found. Please ensure Spotify is running and try refreshing this page.';
-					throw new Error(errorMsg);
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(errorText);
 				}
-				
-				console.log('Device found but not active, attempting transfer...');
-				const transferSuccessful = await transferPlayback();
-				if (transferSuccessful) {
-					// Wait a moment for transfer to complete, then retry
-					await new Promise((resolve) => setTimeout(resolve, 1000));
-
-					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
-						method: 'PUT',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(payload)
-					});
-
-					if (!retryResponse.ok) {
-						const errorText = await retryResponse.text();
-						throw new Error(errorText);
-					}
-				} else {
-					const errorMsg = isMobile 
-						? 'Failed to activate device. On mobile devices, try switching to the other game mode and back.'
-						: 'Failed to activate device. Please ensure Spotify is running and try again.';
-					throw new Error(errorMsg);
-				}
-			} else if (!response.ok) {
-				const errorText = await response.text();
-				console.error('Play API response error:', response.status, errorText);
-				throw new Error(errorText);
 			}
 
 			console.log('✅ Playback started successfully for:', currentTrack.name);
@@ -803,8 +776,13 @@
 		} catch (error) {
 			console.error('❌ Play failed:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to play track';
-		} finally {
 			isPlaying = false;
+
+			// Reset mobile connection state on error for fresh retry
+			if (isMobileDevice()) {
+				console.log('🔄 Resetting mobile connection state due to playback error');
+				mobileSpotifyManager.resetConnectionState();
+			}
 		}
 	}
 
