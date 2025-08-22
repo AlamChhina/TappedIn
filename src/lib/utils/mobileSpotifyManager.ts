@@ -110,8 +110,8 @@ export class MobileSpotifyManager {
 					console.log('✅ Device activation successful');
 					this.connectionState.hasActiveTransfer = true;
 					
-					// Wait for transfer to stabilize on mobile
-					await this.delay(2000);
+					// Wait for transfer to stabilize on mobile (reduced for speed)
+					await this.delay(1000);
 					
 					// Verify activation
 					if (await this.verifyDeviceActive(deviceId)) {
@@ -215,13 +215,13 @@ export class MobileSpotifyManager {
 				}
 
 				console.warn(`Playback attempt ${retry + 1} failed, retrying...`, errorText);
-				await this.delay(1500);
+				await this.delay(750);  // Reduced from 1500ms to 750ms
 			} catch (error) {
 				if (retry === maxRetries) {
 					throw error;
 				}
 				console.warn(`Playback attempt ${retry + 1} error, retrying...`, error);
-				await this.delay(1500);
+				await this.delay(750);  // Reduced from 1500ms to 750ms
 			}
 		}
 	}
@@ -252,10 +252,10 @@ export class MobileSpotifyManager {
 	}
 }
 
-// Global instance for the app
+// Global instance for the app with optimized timeouts for speed
 export const mobileSpotifyManager = new MobileSpotifyManager({
-	retryAttempts: 3,
-	retryDelay: 2000,
-	transferTimeout: 8000,
-	connectionTimeout: 12000
+	retryAttempts: 2,  // Reduced from 3 to 2
+	retryDelay: 1000,  // Reduced from 2000ms to 1000ms (1 second)
+	transferTimeout: 3000,  // Reduced from 8000ms to 3000ms (3 seconds)
+	connectionTimeout: 5000  // Reduced from 12000ms to 5000ms (5 seconds)
 });
