@@ -27,6 +27,7 @@
 		SearchResultType
 	} from '$lib/types';
 	import { gameHistory } from '$lib/stores/gameHistory';
+	import { checkDeviceAvailability, transferPlaybackToDevice, getDeviceConnectionError, isMobileDevice } from '$lib/utils/deviceManager';
 
 	// Normalize text for search - remove punctuation and extra spaces for better matching
 	function normalizeForSearch(text: string): string {
@@ -414,7 +415,7 @@
 
 	// Transfer playback to our device
 	async function transferPlayback() {
-		if (!deviceId) return;
+		if (!deviceId) return false;
 
 		try {
 			isTransferring = true;
@@ -442,6 +443,32 @@
 			return false;
 		} finally {
 			isTransferring = false;
+		}
+	}
+
+	// Check if device is actually available for playback
+	async function checkDeviceAvailabilityLocal() {
+		if (!deviceId) return false;
+		
+		try {
+			const response = await fetch('/api/spotify/player/devices');
+			if (!response.ok) return false;
+			
+			const data = await response.json();
+			const availableDevices = data.devices || [];
+			
+			// Check if our device is in the list of available devices
+			const ourDevice = availableDevices.find((device: any) => device.id === deviceId);
+			console.log('Device availability check:', {
+				ourDeviceId: deviceId,
+				availableDevices: availableDevices.map((d: any) => ({ id: d.id, name: d.name, is_active: d.is_active })),
+				ourDevice: ourDevice ? { id: ourDevice.id, name: ourDevice.name, is_active: ourDevice.is_active } : null
+			});
+			
+			return !!ourDevice;
+		} catch (error) {
+			console.error('Failed to check device availability:', error);
+			return false;
 		}
 	}
 
@@ -560,13 +587,26 @@
 				body: JSON.stringify(payload)
 			});
 
-			// If we get a 404 (no active device), try to transfer playback first and retry
+			// If we get a 404 (no active device), check device availability and try transfer
 			if (response.status === 404) {
-				console.log('Device not active, attempting transfer...');
+				console.log('Device not active, checking availability...');
+				
+				const isDeviceAvailable = await checkDeviceAvailabilityLocal();
+				const isMobile = isMobileDevice();
+				
+				if (!isDeviceAvailable) {
+					// Device not found in available devices - might need app restart on mobile
+					const errorMsg = isMobile 
+						? 'Device not found in Spotify app. On mobile, ensure Spotify app is open and try refreshing this page. If the issue persists, try switching to the other game mode and back.'
+						: 'Device not found. Please ensure Spotify is running and try refreshing this page.';
+					throw new Error(errorMsg);
+				}
+				
+				console.log('Device found but not active, attempting transfer...');
 				const transferSuccessful = await transferPlayback();
 				if (transferSuccessful) {
 					// Wait a moment for transfer to complete, then retry
-					await new Promise((resolve) => setTimeout(resolve, 500));
+					await new Promise((resolve) => setTimeout(resolve, 1000));
 
 					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
 						method: 'PUT',
@@ -581,7 +621,10 @@
 						throw new Error(errorText);
 					}
 				} else {
-					throw new Error('No active device found - please ensure Spotify is open and try again.');
+					const errorMsg = isMobile 
+						? 'Failed to activate device. On mobile devices, try switching to the other game mode and back.'
+						: 'Failed to activate device. Please ensure Spotify is running and try again.';
+					throw new Error(errorMsg);
 				}
 			} else if (!response.ok) {
 				const errorText = await response.text();
