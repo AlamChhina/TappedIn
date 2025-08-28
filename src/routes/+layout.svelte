@@ -132,7 +132,14 @@
 	{@render children?.()}
 	
 	<!-- Footer -->
-	<footer class="p-4 text-center">
-		<p class="text-xs text-gray-500">created by Alam Chhina</p>
+	<footer class="p-4 text-center border-t" style="border-color: #282828;">
+		<div class="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-4">
+			<p class="text-xs text-gray-500">created by Alam Singh Chhina</p>
+			<div class="flex gap-4 text-xs">
+				<a href="/privacy" class="text-gray-500 hover:text-white transition-colors underline hover:no-underline">
+					Privacy Policy
+				</a>
+			</div>
+		</div>
 	</footer>
 </div>
