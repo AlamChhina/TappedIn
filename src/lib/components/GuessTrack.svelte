@@ -1035,12 +1035,22 @@
 					>
 				</div>
 			{:else if playerState === 'ready'}
-				<div class="text-spotify-green flex items-center gap-2">
-					<CheckCircle class="h-4 w-4" />
-					<span>Player connected</span>
-					{#if isTransferring}
-						<span class="text-gray-400">(transferring...)</span>
-					{/if}
+				<div class="flex items-center gap-4 text-spotify-green">
+					<div class="flex items-center gap-2">
+						<CheckCircle class="h-4 w-4" />
+						<span>Player connected</span>
+						{#if isTransferring}
+							<span class="text-gray-400">(transferring...)</span>
+						{/if}
+					</div>
+					<Button
+						onclick={() => {
+							initializePlayer();
+						}}
+						size="sm"
+						variant="outline"
+						class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
+					>
 				</div>
 			{:else if playerState === 'error'}
 				<div class="flex items-center gap-4 text-red-400">
