@@ -666,7 +666,7 @@
 
 	// Play current track from start - CLASSIC MODE: Play for specified duration
 	async function playFromStart() {
-		if (!currentTrack || !deviceId) {
+		if (!currentTrack || !deviceId || !player) {
 			errorMessage = 'No device connected. Please ensure Spotify is open and try again.';
 			return;
 		}
@@ -698,8 +698,23 @@
 			console.log('Tries used:', triesUsed);
 			console.log('Playback mode:', playbackMode);
 			console.log('Start position:', startPosition, 'ms');
+			console.log('First song for artist:', isFirstSongForArtist);
 
-			// Always use a fresh play request with specific URI to avoid queue issues
+			// 1. Activate audio element (must be inside user gesture handler)
+			console.log('Activating audio element...');
+			await player.activateElement();
+
+			// 2. Transfer playback to our SDK device proactively 
+			console.log('Transferring playback to SDK device...');
+			const transferSuccessful = await transferPlayback();
+			if (!transferSuccessful) {
+				throw new Error('Failed to transfer playback to device');
+			}
+
+			// Wait a moment for transfer to complete
+			await new Promise((resolve) => setTimeout(resolve, 500));
+
+			// 3. Start playback with the track
 			const payload = {
 				uris: [currentTrack.uri],
 				position_ms: startPosition
@@ -713,30 +728,7 @@
 				body: JSON.stringify(payload)
 			});
 
-			// If we get a 404 (no active device), try to transfer playback first and retry
-			if (response.status === 404) {
-				console.log('Device not active, attempting transfer...');
-				const transferSuccessful = await transferPlayback();
-				if (transferSuccessful) {
-					// Wait a moment for transfer to complete, then retry
-					await new Promise((resolve) => setTimeout(resolve, 500));
-
-					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
-						method: 'PUT',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(payload)
-					});
-
-					if (!retryResponse.ok) {
-						const errorText = await retryResponse.text();
-						throw new Error(errorText);
-					}
-				} else {
-					throw new Error('No active device found - please ensure Spotify is open and try again.');
-				}
-			} else if (!response.ok) {
+			if (!response.ok) {
 				const errorText = await response.text();
 				console.error('Play API response error:', response.status, errorText);
 				throw new Error(errorText);
@@ -1302,22 +1294,12 @@
 				</div>
 			{:else if playerState === 'ready'}
 				<div class="flex items-center justify-between">
-					<div class="text-spotify-green flex items-center gap-4">
-						<div class="flex items-center gap-2">
-							<CheckCircle class="h-4 w-4" />
-							<span>Player connected</span>
-							{#if isTransferring}
-								<span class="text-gray-400">(transferring...)</span>
-							{/if}
-						</div>
-						<Button
-							onclick={() => {
-								initializePlayer();
-							}}
-							size="sm"
-							variant="outline"
-							class="text-xs sm:text-sm px-2 py-1">Retry Connection</Button
-						>
+					<div class="text-spotify-green flex items-center gap-2">
+						<CheckCircle class="h-4 w-4" />
+						<span>Player connected</span>
+						{#if isTransferring}
+							<span class="text-gray-400">(transferring...)</span>
+						{/if}
 					</div>
 					<!-- Tries Indicator -->
 					<div class="flex items-center gap-2">
