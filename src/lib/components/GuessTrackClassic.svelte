@@ -197,6 +197,12 @@
 	let sdkLoaded = false;
 	let guessInputElement = $state<HTMLInputElement | null>(null);
 
+	// Mobile device detection
+	function isMobileDevice(): boolean {
+		return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+			   (navigator.maxTouchPoints > 1);
+	}
+
 	// Filter suggestions based on input
 	$effect(() => {
 		if (!guessInput.trim() || showAnswer) {
@@ -701,10 +707,11 @@
 			console.log('Start position:', startPosition, 'ms');
 			console.log('First song for artist:', isFirstSongForArtist);
 			console.log('Has activated player:', hasActivatedPlayer);
+			console.log('Is mobile device:', isMobileDevice());
 
-			// Only do the full activation sequence on the very first play
-			if (!hasActivatedPlayer) {
-				console.log('🎯 First play - doing full activation sequence...');
+			// Only do the full activation sequence for mobile devices on the very first play
+			if (!hasActivatedPlayer && isMobileDevice()) {
+				console.log('🎯 Mobile device detected - doing full activation sequence...');
 				
 				// 1. Activate audio element (must be inside user gesture handler)
 				console.log('Activating audio element...');
@@ -723,6 +730,9 @@
 				// Mark that we've done the activation sequence
 				hasActivatedPlayer = true;
 				console.log('✅ Player activation completed');
+			} else if (!hasActivatedPlayer) {
+				console.log('🖥️ Desktop device - skipping activation sequence');
+				hasActivatedPlayer = true; // Mark as activated so we don't check again
 			} else {
 				console.log('🚀 Subsequent play - using fast path...');
 			}
@@ -1334,9 +1344,6 @@
 					<div class="text-spotify-green flex items-center gap-2">
 						<CheckCircle class="h-4 w-4" />
 						<span>Player connected</span>
-						{#if isTransferring}
-							<span class="text-gray-400">(transferring...)</span>
-						{/if}
 					</div>
 					<!-- Tries Indicator -->
 					<div class="flex items-center gap-2">
