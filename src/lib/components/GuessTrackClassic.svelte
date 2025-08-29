@@ -134,6 +134,7 @@
 	let positionCheckInterval = $state<ReturnType<typeof setInterval> | null>(null); // Interval for checking position
 	let isFirstSongForArtist = $state(true); // Track if this is the first song for current artist
 	let hasPlayedFirstSong = $state(false); // Track if first song has been manually played
+	let hasActivatedPlayer = $state(false); // Track if we've done the initial activation sequence
 	let selectedTrackFromDropdown = $state<GameTrack | null>(null); // Track if guess came from dropdown selection
 	let currentPlayDuration = $state(1); // Current play duration in seconds (1, 2, 4, 7, 11)
 	let triesUsed = $state(0); // Number of tries used (0-3, where 0 means initial 1 second)
@@ -699,22 +700,34 @@
 			console.log('Playback mode:', playbackMode);
 			console.log('Start position:', startPosition, 'ms');
 			console.log('First song for artist:', isFirstSongForArtist);
+			console.log('Has activated player:', hasActivatedPlayer);
 
-			// 1. Activate audio element (must be inside user gesture handler)
-			console.log('Activating audio element...');
-			await player.activateElement();
+			// Only do the full activation sequence on the very first play
+			if (!hasActivatedPlayer) {
+				console.log('🎯 First play - doing full activation sequence...');
+				
+				// 1. Activate audio element (must be inside user gesture handler)
+				console.log('Activating audio element...');
+				await player.activateElement();
 
-			// 2. Transfer playback to our SDK device proactively 
-			console.log('Transferring playback to SDK device...');
-			const transferSuccessful = await transferPlayback();
-			if (!transferSuccessful) {
-				throw new Error('Failed to transfer playback to device');
+				// 2. Transfer playback to our SDK device proactively 
+				console.log('Transferring playback to SDK device...');
+				const transferSuccessful = await transferPlayback();
+				if (!transferSuccessful) {
+					throw new Error('Failed to transfer playback to device');
+				}
+
+				// Wait a moment for transfer to complete
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				
+				// Mark that we've done the activation sequence
+				hasActivatedPlayer = true;
+				console.log('✅ Player activation completed');
+			} else {
+				console.log('🚀 Subsequent play - using fast path...');
 			}
 
-			// Wait a moment for transfer to complete
-			await new Promise((resolve) => setTimeout(resolve, 500));
-
-			// 3. Start playback with the track
+			// 3. Start playback with the track (same for all plays)
 			const payload = {
 				uris: [currentTrack.uri],
 				position_ms: startPosition
@@ -728,7 +741,30 @@
 				body: JSON.stringify(payload)
 			});
 
-			if (!response.ok) {
+			// If we get a 404 (no active device), try to transfer playback first and retry
+			if (response.status === 404) {
+				console.log('Device not active, attempting transfer...');
+				const transferSuccessful = await transferPlayback();
+				if (transferSuccessful) {
+					// Wait a moment for transfer to complete, then retry
+					await new Promise((resolve) => setTimeout(resolve, 500));
+
+					const retryResponse = await fetch(`/api/spotify/player/play?device_id=${deviceId}`, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+					if (!retryResponse.ok) {
+						const errorText = await retryResponse.text();
+						throw new Error(errorText);
+					}
+				} else {
+					throw new Error('No active device found - please ensure Spotify is open and try again.');
+				}
+			} else if (!response.ok) {
 				const errorText = await response.text();
 				console.error('Play API response error:', response.status, errorText);
 				throw new Error(errorText);
@@ -1088,6 +1124,7 @@
 			// Reset first song state when tracks change (new artist)
 			isFirstSongForArtist = true;
 			hasPlayedFirstSong = false;
+			hasActivatedPlayer = false; // Reset activation flag for new artist
 			initializePlayer();
 		}
 	});
