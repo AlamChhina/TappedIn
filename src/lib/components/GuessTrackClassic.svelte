@@ -203,6 +203,22 @@
 			   (navigator.maxTouchPoints > 1);
 	}
 
+	// Session-based activation tracking (persists across mode switches)
+	function getSessionActivationKey(): string {
+		return 'spotify_player_activated';
+	}
+
+	function hasPlayerBeenActivatedInSession(): boolean {
+		if (typeof window === 'undefined') return false;
+		return localStorage.getItem(getSessionActivationKey()) === 'true';
+	}
+
+	function markPlayerAsActivatedInSession(): void {
+		if (typeof window !== 'undefined') {
+			localStorage.setItem(getSessionActivationKey(), 'true');
+		}
+	}
+
 	// Filter suggestions based on input
 	$effect(() => {
 		if (!guessInput.trim() || showAnswer) {
@@ -709,9 +725,10 @@
 			console.log('Has activated player:', hasActivatedPlayer);
 			console.log('Is mobile device:', isMobileDevice());
 
-			// Only do the full activation sequence for mobile devices on the very first play
-			if (!hasActivatedPlayer && isMobileDevice()) {
-				console.log('🎯 Mobile device detected - doing full activation sequence...');
+			// Only do the full activation sequence for mobile devices on the very first play in this session
+			const sessionActivated = hasPlayerBeenActivatedInSession();
+			if (!sessionActivated && isMobileDevice()) {
+				console.log('🎯 Mobile device detected - doing full activation sequence (first time this session)...');
 				
 				// 1. Activate audio element (must be inside user gesture handler)
 				console.log('Activating audio element...');
@@ -727,14 +744,17 @@
 				// Wait a moment for transfer to complete
 				await new Promise((resolve) => setTimeout(resolve, 500));
 				
-				// Mark that we've done the activation sequence
+				// Mark that we've done the activation sequence for this session
+				markPlayerAsActivatedInSession();
 				hasActivatedPlayer = true;
-				console.log('✅ Player activation completed');
-			} else if (!hasActivatedPlayer) {
+				console.log('✅ Player activation completed and saved to session');
+			} else if (!sessionActivated) {
 				console.log('🖥️ Desktop device - skipping activation sequence');
+				markPlayerAsActivatedInSession();
 				hasActivatedPlayer = true; // Mark as activated so we don't check again
 			} else {
-				console.log('🚀 Subsequent play - using fast path...');
+				console.log('🚀 Session already activated - using fast path...');
+				hasActivatedPlayer = true; // Ensure component state is aligned
 			}
 
 			// 3. Start playback with the track (same for all plays)
@@ -1134,7 +1154,7 @@
 			// Reset first song state when tracks change (new artist)
 			isFirstSongForArtist = true;
 			hasPlayedFirstSong = false;
-			hasActivatedPlayer = false; // Reset activation flag for new artist
+			// DON'T reset hasActivatedPlayer - preserve activation across mode switches
 			initializePlayer();
 		}
 	});
