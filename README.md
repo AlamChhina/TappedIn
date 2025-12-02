@@ -117,5 +117,4 @@ Then open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser and sig
 ## Notes
 
 - TappedIn is a personal / educational project and is **not affiliated with or endorsed by Spotify**.  
-- Because of Spotify’s developer policies, only whitelisted users can access the app in its current form.
 
