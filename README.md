@@ -5,7 +5,7 @@ You connect your Spotify Premium account, search for an artist, and try to guess
 
 ![TappedIn gameplay demo](static/docs/tappedin-demo.gif)
 
-[▶ Watch the demo with audio](https://alamchhina.github.io/tappedin/)
+[▶ Watch the demo with audio](https://alamchhina.github.io/TappedIn/)
 
 
 ---
