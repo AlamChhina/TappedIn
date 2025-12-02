@@ -87,7 +87,7 @@ Requirements:
 - pnpm or npm  
 - **Spotify Premium** account  
 - A Spotify Developer application with:
-  - Redirect URI set to your local dev URL (e.g. `http://localhost:5173/callback`)
+  - Redirect URI set to your local dev URL (e.g. `http://127.0.0.1:5173/callback`)
 
 ### Environment variables
 
@@ -96,8 +96,8 @@ Create a `.env` file in the project root (names may differ based on your code; a
 ```bash
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-SPOTIFY_REDIRECT_URI=http://localhost:5173/callback
-APP_BASE_URL=http://localhost:5173
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:5173/callback
+APP_BASE_URL=http://127.0.0.1:5173
 ```
 
 ### Install & run
@@ -110,7 +110,7 @@ pnpm install    # or: npm install
 pnpm dev        # or: npm run dev
 ```
 
-Then open [http://localhost:5173](http://localhost:5173) in your browser and sign in with Spotify.
+Then open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser and sign in with Spotify.
 
 ---
 
