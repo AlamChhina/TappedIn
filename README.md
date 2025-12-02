@@ -3,7 +3,7 @@
 TappedIn is a Spotify-powered, mobile-friendly music guessing game.  
 You connect your Spotify Premium account, search for an artist, and try to guess the track while it plays through the Spotify Web Playback SDK.
 
-<video src="static/docs/tappedin-demo.mp4" controls width="600">
+<video src="https://github.com/AlamChhina/tappedin/raw/main/static/docs/tappedin-demo.mp4" controls width="600">
   Your browser does not support the video tag.
 </video>
 
