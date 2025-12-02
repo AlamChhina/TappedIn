@@ -11,13 +11,13 @@ You connect your Spotify Premium account, search for an artist, and try to guess
 
 ## Features
 
-- 🔍 **Artist search** – real-time artist search backed by the Spotify Web API  
-- 🎵 **Full-track playback** – plays full tracks from the beginning using the Spotify Web Playback SDK (not just 30s previews)  
-- 🎯 **Primary track filtering** – only includes tracks where the artist is the first credited artist and longer than 30 seconds  
-- 🧹 **Smart deduplication** – merges duplicates across albums/singles so songs don’t repeat  
-- ✅ **Premium-only access** – wiring of Spotify OAuth to restrict gameplay to Spotify Premium accounts  
-- 🧠 **Robust guess matching** – normalized title matching so small differences in punctuation/case don’t break answers  
-- 🛡️ **Rate-limit aware** – avoids hitting Spotify’s rate limits with batched and cached calls  
+- **Artist search** – real-time artist search backed by the Spotify Web API
+- **Full-track playback** – plays full tracks from the beginning using the Spotify Web Playback SDK (not just 30s previews)
+- **Primary track filtering** – only includes tracks where the artist is the first credited artist and longer than 30 seconds
+- **Smart deduplication** – merges duplicates across albums/singles so songs don’t repeat
+- **Premium-only access** – wiring of Spotify OAuth to restrict gameplay to Spotify Premium accounts
+- **Robust guess matching** – normalized title matching so small differences in punctuation/case don’t break answers
+- **Rate-limit aware** – avoids hitting Spotify’s rate limits with batched and cached calls
 
 ---
 
