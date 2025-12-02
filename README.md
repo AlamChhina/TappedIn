@@ -1,4 +1,4 @@
-# TappedIn 🎧
+# TappedIn
 
 TappedIn is a Spotify-powered, mobile-friendly music guessing game.  
 You connect your Spotify Premium account, search for an artist, and try to guess the track while it plays through the Spotify Web Playback SDK.
@@ -75,8 +75,6 @@ Requirements:
 - **Auth & APIs:** Spotify OAuth, Spotify Web API, Spotify Web Playback SDK  
 - **Backend / Data:** Node.js (SvelteKit server routes), SQLite (if you’re persisting anything server-side)  
 - **Tooling:** Vite / SvelteKit dev server, pnpm/npm  
-
-*(Adjust this section to match your exact implementation.)*
 
 ---
 
